@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<webtop>
+	<section mergeType="merge" id="content">
+		<subsection id="farcrygasubsection" sequence="15" label="Google Analytics">
+			<menu id="farcrygamenu" sequence="10" label="Configuration">
+				<menuitem id="listgaSetting" sequence="10" label="Site Settings" link="/admin/customadmin.cfm?plugin=googleanalytics&amp;module=gaSettings.cfm" relatedtype="gaSetting" />
+			</menu>
+		</subsection>
+	</section>
+</webtop>
