@@ -31,6 +31,8 @@
 			});
 		};
 		
+		this.encodedLength = function(input) { return encodeURIComponent(input).length; };
+		
 		// updates global scope with the Google tracker object, and processes any queued URLs
 		this.setTracker = function(tracker) {
 			var url = "";
@@ -42,7 +44,12 @@
 			this.trackURL = function(url,customVars) {
 				customVars = customVars || [];
 				for (var i = 0; i < customVars.length; i++) {
-					gatracker._setCustomVar(i,customVars[i].name,customVars[i].value,customVars[i].scope);
+					if (this.encodedLength(customVars[i].name) + this.encodedLength(customVars[i].value) > 64) {
+						var nameLen = 64 - this.encodedLength(customVars[i].name);
+						var trimmedVal = encodeURIComponent(customVars[i].value).substr(0,nameLen).replace(/(%\w{2})?%\w?$/,"");
+						customVars[i].value = decodeURIComponent(trimmedVal);
+					}
+					gatracker._setCustomVar(i+1,customVars[i].name,customVars[i].value,customVars[i].scope);
 				}
 				
 				gatracker._trackPageview(url);
@@ -67,7 +74,8 @@
 			extensions: [
 					'pdf','doc','xls','csv','jpg','gif', 'mp3',
 					'swf','txt','ppt','zip','gz','dmg','xml'
-			]
+			],
+			trailingString: ''
 		}, params);
 		
 		// default url to track is href (obviously the default only works for links)

@@ -116,7 +116,7 @@
 					return '/downloads/'+title.replace(/<[^>]+>/g,'-').replace(/[^\w]+/g,'-');
 				};
 				if($j && $j.ga) {
-					$j.ga.setTracker(_gat._getTracker("#stSetting.urchinCode#"),'#stSetting.types#');
+					$j.ga.setTracker(_gat._createTracker("#stSetting.urchinCode#"),'#stSetting.types#');
 					$j("a").track(); // track external links, files, email addresses
 					$j("a[href*=download.cfm]").track({ urlfn:figureOutLink });
 					// track obfusicated dmFile (and any other configured) types
