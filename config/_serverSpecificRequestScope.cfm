@@ -1,0 +1,1 @@
+<cfset application.fc.lib.ga.initializeRequest() />
