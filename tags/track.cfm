@@ -118,6 +118,7 @@
 				if($j && $j.ga) {
 					$j.ga.setTracker(_gat._createTracker("#stSetting.urchinCode#"),'#stSetting.types#');
 					$j("a").track(); // track external links, files, email addresses
+					$j("form").track({ event:"submit" }); // track external links
 					$j("a[href*=\"download.cfm\"]").track({ urlfn:figureOutLink });
 					// track obfusicated dmFile (and any other configured) types
 					<cfloop list="#stSetting.types#" index="thistype">

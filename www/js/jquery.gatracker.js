@@ -81,7 +81,7 @@
 		// default url to track is href (obviously the default only works for links)
 		params.urlfn = params.urlfn || function(el,ev,opts) { 
 			var trackingURL = '';
-			var u = el.href;
+			var u = el.href || el.action;
 			var jQThis = $j(this);
 			
 			if (u.indexOf('://') == -1 && u.indexOf('mailto:') != 0){
