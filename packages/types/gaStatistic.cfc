@@ -29,6 +29,12 @@
 			startDate = dateadd("d",-arguments.stSetting.cacheDays,now()),
 			endDate = now()) />
 		
+		
+		<cfquery datasource="#application.dsn#">
+			update	#application.dbowner#gaStatistic
+			set		hits=<cfqueryparam cfsqltype="cf_sql_bigint" value="0" />							
+		</cfquery>			
+		
 		<cfloop query="stData.results">
 			<cfset stFU = application.fc.factory.farFU.getFUData(listfirst(stData.results.pagepath,"?")) />
 			<cfif structkeyexists(stFU,"objectid")>
@@ -40,7 +46,7 @@
 				<cfif qExists.recordcount>
 					<cfquery datasource="#application.dsn#">
 						update	#application.dbowner#gaStatistic
-						set		hits=<cfqueryparam cfsqltype="cf_sql_bigint" value="#stData.results.pageviews#" />,
+						set		hits= hits+ <cfqueryparam cfsqltype="cf_sql_bigint" value="#stData.results.pageviews#" />,
 								datetimelastupdated=<cfqueryparam cfsqltype="cf_sql_timestamp" value="#now()#" />
 						where	objectid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#qExists.objectid[1]#" />
 					</cfquery>
