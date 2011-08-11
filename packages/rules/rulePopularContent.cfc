@@ -68,7 +68,7 @@
 								where		categoryid in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#arguments.stObject.objectCategories#" />)
 							)
 						</cfif>
-			where		gaSettingID=<cfqueryparam cfsqltype="cf_sql_varchar" value="#stSetting.objectid#" />
+						and gaSettingID=<cfqueryparam cfsqltype="cf_sql_varchar" value="#stSetting.objectid#" />
 			order by	hits desc
 		</cfquery>
 		
