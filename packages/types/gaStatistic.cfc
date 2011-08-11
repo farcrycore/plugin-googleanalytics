@@ -50,7 +50,7 @@
 								datetimelastupdated=<cfqueryparam cfsqltype="cf_sql_timestamp" value="#now()#" />
 						where	objectid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#qExists.objectid[1]#" />
 					</cfquery>
-				<cfelse>
+				<cfelseif len(stFU.type)>
 					<cfset stStat = application.fapi.getNewContentObject(typename="gaStatistic") />
 					<cfset stStat.referenceID = stFU.objectid />
 					<cfset stStat.referenceType = stFU.type />
