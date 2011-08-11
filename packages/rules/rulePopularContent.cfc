@@ -52,6 +52,7 @@
 		<cfargument name="stObject" type="struct" required="true" />
 		
 		<cfset var q = "" />
+		<cfset var stSetting = application.fapi.getContentType(typename="gaSetting").getSettings() />
 		
 		<cfquery datasource="#application.dsn#" name="q" maxRows="#arguments.stObject.numItems#">
 			select		referenceID as objectid,referenceType as typename,hits
@@ -67,6 +68,7 @@
 								where		categoryid in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#arguments.stObject.objectCategories#" />)
 							)
 						</cfif>
+			where		gaSettingID=<cfqueryparam cfsqltype="cf_sql_varchar" value="#stSetting.objectid#" />
 			order by	hits desc
 		</cfquery>
 		

@@ -2,6 +2,7 @@
 	<cfproperty name="referenceID" type="uuid" />
 	<cfproperty name="referenceType" type="string" />
 	<cfproperty name="hits" type="integer" />
+	<cfproperty name="gaSettingID" type="uuid" ftJoin="gaSetting" />
 	
 	
 	<cffunction name="updateStatistics" access="public" returntype="struct" output="false">
@@ -32,7 +33,8 @@
 		
 		<cfquery datasource="#application.dsn#">
 			update	#application.dbowner#gaStatistic
-			set		hits=<cfqueryparam cfsqltype="cf_sql_bigint" value="0" />							
+			set		hits=<cfqueryparam cfsqltype="cf_sql_bigint" value="0" />		
+			where	gaSettingID=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stSetting.objectid#" />
 		</cfquery>			
 		
 		<cfloop query="stData.results">
@@ -42,6 +44,7 @@
 					select	objectid
 					from	#application.dbowner#gaStatistic
 					where	referenceid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#stFU.objectid#" />
+							and gaSettingID=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stSetting.objectid#" />
 				</cfquery>
 				<cfif qExists.recordcount>
 					<cfquery datasource="#application.dsn#">
@@ -49,12 +52,14 @@
 						set		hits= hits+ <cfqueryparam cfsqltype="cf_sql_bigint" value="#stData.results.pageviews#" />,
 								datetimelastupdated=<cfqueryparam cfsqltype="cf_sql_timestamp" value="#now()#" />
 						where	objectid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#qExists.objectid[1]#" />
+								and gaSettingID=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stSetting.objectid#" />
 					</cfquery>
 				<cfelseif len(stFU.type)>
 					<cfset stStat = application.fapi.getNewContentObject(typename="gaStatistic") />
 					<cfset stStat.referenceID = stFU.objectid />
 					<cfset stStat.referenceType = stFU.type />
 					<cfset stStat.hits = stData.results.pageviews />
+					<cfset stStat.gaSettingID = arguments.stSetting.objectid />
 					<cfset setData(stProperties=stStat) />
 				</cfif>
 			</cfif>
