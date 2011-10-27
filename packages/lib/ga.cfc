@@ -72,8 +72,15 @@
 	</cffunction>
 	
 	<cffunction name="getSettings" access="public" output="false" returntype="struct" hint="Returns the tracking settings to use for this request (uses the request host)">
+		<cfset var temp = "" />
 		
-		<cfreturn application.fapi.getContentType(typename="gaSetting").getSettings(request.fc.ga.host) />
+		<cfif not structkeyexists(application.stPlugins.googleanalytics,request.fc.ga.host)>
+			<cfset temp = application.fapi.getContentType(typename="gaSetting").getSettings(request.fc.ga.host) />
+			<cfset application.stPlugins.googleanalytics[request.fc.ga.host] = temp.objectid />
+			<cfreturn temp />
+		<cfelse>
+			<cfreturn application.fapi.getContentObject(typename="gaSetting",objectid=application.stPlugins.googleanalytics[request.fc.ga.host]) />
+		</cfif>
 	</cffunction>
 	
 	<cffunction name="setTrackableURL" access="public" output="false" returntype="void" hint="Use to force the tracked URL to be something specific">
@@ -89,12 +96,13 @@
 				<cfset request.fc.ga.stObject.typename = application.coapi.findType(request.fc.ga.stObject.objectid) />
 			</cfif>
 		</cfif>
-		
 	</cffunction>
 	
 	<cffunction name="getTrackableURL" access="public" output="false" returntype="string" hint="If no URL has been specifically set, attempts to generate an appropriate URL for the current object or type webskin">
 		<cfset var trackableURL = "" />
 		<cfset var stNav = structnew() />
+		<cfset var stSettings = getSettings() />
+		<cfset var urlVar = "" />
 		
 		<cfimport taglib="/farcry/core/tags/navajo" prefix="nj" />
 		
@@ -103,12 +111,10 @@
 		</cfif>
 		
 		<cfif structkeyexists(request.fc.ga,"url")>
-			<cfreturn request.fc.ga.url />
+			<cfset trackableURL = request.fc.ga.url />
 		<cfelseif not structkeyexists(request.fc.ga,"stObject")>
-			<cfreturn application.fapi.fixURL() />
-		</cfif>
-		
-		<cfif request.fc.ga.stObject.typename eq "farCOAPI">
+			<cfset trackableURL = application.fapi.fixURL() />
+		<cfelseif request.fc.ga.stObject.typename eq "farCOAPI">
 			<cfset trackableURL = application.fapi.fixURL() />
 			
 			<cfif find("/index.cfm?",trackableURL)>
@@ -145,6 +151,16 @@
 				<cfset trackableURL = "#trackableURL#/#application.stCOAPI[request.fc.ga.stObject.typename].stWebskins[url.bodyview].fuAlias#" />
 			</cfif>
 		</cfif>
+		
+		<cfloop list="#stSettings.urlWhiteList#" index="urlVar">
+			<cfif structkeyexists(url,urlVar) and not refindnocase("[&?]#urlVar#=",trackableURL)>
+				<cfif find("?",trackableURL)>
+					<cfset trackableURL = "#trackableURL#&#urlVar#=#url[urlVar]#" />
+				<cfelse>
+					<cfset trackableURL = "#trackableURL#?#urlVar#=#url[urlVar]#" />
+				</cfif>
+			</cfif>
+		</cfloop>
 		
 		<cfreturn trackableURL />
 	</cffunction>
