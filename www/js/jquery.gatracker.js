@@ -96,7 +96,9 @@
 		
 		// updates global scope with the Google tracker object, and sets up default tracking
 		this.setTracker = function setTracker(tracker,params) {
-			_gaq = _gaq.concat(tracker);
+			for (var i=_gaq.length-1;i>=0;i--)
+				tracker.unshift(_gaq[i]);
+			_gaq = tracker;
 			
 			$(function setupJqueryGA(){
 				// default options
