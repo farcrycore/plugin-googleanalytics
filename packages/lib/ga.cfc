@@ -72,11 +72,13 @@
 	</cffunction>
 	
 	<cffunction name="getSettings" access="public" output="false" returntype="struct" hint="Returns the tracking settings to use for this request (uses the request host)">
-		<cfset var temp = "" />
+		<cfset var temp = structNew() />
 		
 		<cfif not structkeyexists(application.stPlugins.googleanalytics,request.fc.ga.host)>
 			<cfset temp = application.fapi.getContentType(typename="gaSetting").getSettings(request.fc.ga.host) />
-			<cfset application.stPlugins.googleanalytics[request.fc.ga.host] = temp.objectid />
+			<cfif isDefined("temp.objectid")>
+				<cfset application.stPlugins.googleanalytics[request.fc.ga.host] = temp.objectid />
+			</cfif>
 			<cfreturn temp />
 		<cfelse>
 			<cfreturn application.fapi.getContentObject(typename="gaSetting",objectid=application.stPlugins.googleanalytics[request.fc.ga.host]) />
