@@ -154,15 +154,17 @@
 			</cfif>
 		</cfif>
 		
-		<cfloop list="#stSettings.urlWhiteList#" index="urlVar">
-			<cfif structkeyexists(url,urlVar) and not refindnocase("[&?]#urlVar#=",trackableURL)>
-				<cfif find("?",trackableURL)>
-					<cfset trackableURL = "#trackableURL#&#urlVar#=#url[urlVar]#" />
-				<cfelse>
-					<cfset trackableURL = "#trackableURL#?#urlVar#=#url[urlVar]#" />
+		<cfif structkeyexists(stSettings,"urlWhiteList")>
+			<cfloop list="#stSettings.urlWhiteList#" index="urlVar">
+				<cfif structkeyexists(url,urlVar) and not refindnocase("[&?]#urlVar#=",trackableURL)>
+					<cfif find("?",trackableURL)>
+						<cfset trackableURL = "#trackableURL#&#urlVar#=#url[urlVar]#" />
+					<cfelse>
+						<cfset trackableURL = "#trackableURL#?#urlVar#=#url[urlVar]#" />
+					</cfif>
 				</cfif>
-			</cfif>
-		</cfloop>
+			</cfloop>
+		</cfif>
 		
 		<cfreturn trackableURL />
 	</cffunction>
