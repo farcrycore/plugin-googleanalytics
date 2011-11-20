@@ -1,9 +1,10 @@
-<cfcomponent displayname="Google Analytics configuration" hint="Configuration for Google Analytics" extends="farcry.core.packages.types.types" output="false">
+<cfcomponent displayname="Google Analytics configuration" hint="Configuration for Google Analytics" extends="farcry.core.packages.types.types" output="false" bObjectBroker="1">
 	
 	<cfproperty ftSeq="2" ftFieldset="Google Analytics Settings" name="bActive" type="boolean" default="1" hint="Urchin Code." ftLabel="Active" />
 	<cfproperty ftSeq="3" ftFieldset="Google Analytics Settings" name="urchinCode" type="string" default="" hint="Urchin Code." ftLabel="Urchin Code" />
 	<cfproperty ftSeq="4" ftFieldset="Google Analytics Settings" name="types" type="longchar" required="true" default="dmFile" ftLabel="Types" />
 	<cfproperty ftSeq="5" ftFieldset="Google Analytics Settings" name="lDomains" type="longchar" default="" hint="Urchin Code." ftLabel="Domain(s)" ftHint="<strong>Optional:</strong> Leave empty to track all domains or define each domain on a new line." bLabel="true" />
+	<cfproperty ftSeq="6" ftFieldset="Google Analytics Settings" name="urlWhiteList" type="string" default="q" ftDefault="q" ftLabel="URL Variable Whitelist" ftHint="These URL variables will always be included in tracked URLs" />
 	
 	<cfproperty ftSeq="11" ftFieldset="Google Analytics API Access" name="email" type="string" ftType="email" ftLabel="Login Email Address" />
 	<cfproperty ftSeq="12" ftFieldset="Google Analytics API Access" name="password" type="string" ftType="string" ftLabel="Password" ftRenderType="confirmpassword" />

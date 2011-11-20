@@ -19,97 +19,102 @@
 
 
 (function($){
-	$.ga = new (function(){
-		var gatracker = "";
-		var urlqueue = [];
-		
-		// until the tracker is set, trackURL just adds urls to the queue
-		this.trackURL = function(url,customVars) {
-			urlqueue.push({
-				url: url,
-				customVars: customVars || []
-			});
-		};
-		
-		this.encodedLength = function(input) { return encodeURIComponent(input).length; };
-		
-		// updates global scope with the Google tracker object, and processes any queued URLs
-		this.setTracker = function(tracker) {
-			var url = "";
+	var defaultParams = {
+		event:		'click',
+		external:	'/external/',
+		mailto:		'/mailtos/',
+		download:	'/downloads/',
+		itunes:		'/itunes/',
+		extensions: [
+				'pdf','doc','xls','csv','jpg','gif', 'mp3',
+				'swf','txt','ppt','zip','gz','dmg','xml'
+		],
+		downloadClasses : [],
+		// default url to track is href (obviously the default only works for links)
+		urlfn : function urlFN(el,ev,opts) {
+			var u = el.href || el.action;
+			var jQThis = $(this);
 			
-			// update tracker
-			gatracker = tracker;
-			
-			// update trackURL to actually report url
-			this.trackURL = function(url,customVars) {
-				customVars = customVars || [];
-				for (var i = 0; i < customVars.length; i++) {
-					if (this.encodedLength(customVars[i].name) + this.encodedLength(customVars[i].value) > 64) {
-						var nameLen = 64 - this.encodedLength(customVars[i].name);
-						var trimmedVal = encodeURIComponent(customVars[i].value).substr(0,nameLen).replace(/(%\w{2})?%\w?$/,"");
-						customVars[i].value = decodeURIComponent(trimmedVal);
-					}
-					gatracker._setCustomVar(i+1,customVars[i].name,customVars[i].value,customVars[i].scope);
+			if (u.indexOf('://') == -1 && u.indexOf('mailto:') != 0){ // no protocol or mailto - internal link
+				
+				// check for farcry downloads
+				if (u.indexOf("/download.cfm?")>-1){
+					var title = jQThis.attr("title") || el.innerHTML;
+					return opts.download + title.replace(/<[^>]+>/g,'-').replace(/[^\w]+/g,'-');
 				}
 				
-				gatracker._trackPageview(url);
-			};
-			
-			// process queue
-			while (trackData = urlqueue.shift()) {
-				trackURL(trackData.url,trackData.customVars);
+				// check extension
+				var ext = u.split('.')[u.split('.').length - 1];			
+				var exts = opts.extensions;
+				
+				for(i = 0; i < exts.length; i++){
+					if(ext == exts[i]) return opts.download + u;
+				}
+				
+				// check for download classes
+				for (var i=0;i<opts.downloadClasses;i++){
+					if(jQThis.hasClass(opts.downloadClasses[i])){
+						var title = jQThis.attr("title") || el.innerHTML;
+						return opts.download + title.replace(/<[^>]+>/g,'-').replace(/[^\w]+/g,'-');
+					}
+				}	
+			} else if (u.indexOf('mailto:') == 0){
+				// mailto link - decorate
+				return opts.mailto + u.substring(7);
+			} else if (u.indexOf('itpc://') == 0){
+				return opts.itunes + u.replace(/itpc\:\/\/[^\/]*[\/]?/,'');
+			} else {
+				// complete URL - check domain
+				var regex = /([^:\/]+)*(?::\/\/)*([^:\/]+)(:[0-9]+)*\/?/i;
+				var linkparts = regex.exec(u);
+				var urlparts = regex.exec(location.href);
+				if(linkparts[2] != urlparts[2]) return opts.external + u.replace(/[^:\/]+\:\/\//,'');
 			}
+			
+			return "";
+		}
+	};
+	
+	$.ga = new (function(){
+		var _gaq = [];
+		
+		// until the tracker is set, trackURL just adds urls to the queue
+		this.trackURL = function trackURL(url) {
+			_gaq.push(['_trackPageview', url]);
+		};
+		
+		// custom variables
+		this.encodedLength = function(input) { return encodeURIComponent(input).length; };
+		this.setCustomVar = function setCustomVar(slot,name,value,scope){
+			if (this.encodedLength(name) + this.encodedLength(value) > 64) {
+				var nameLen = 64 - this.encodedLength(name);
+				var trimmedVal = encodeURIComponent(value).substr(0,nameLen).replace(/(%\w{2})?%\w?$/,"");
+				value = decodeURIComponent(trimmedVal);
+			}
+			_gaq.push(['_setCustomVar',slot,name,value,scope]);
+		};
+		
+		// updates global scope with the Google tracker object, and sets up default tracking
+		this.setTracker = function setTracker(tracker,params) {
+			for (var i=_gaq.length-1;i>=0;i--)
+				tracker.unshift(_gaq[i]);
+			_gaq = tracker;
+			
+			$(function setupJqueryGA(){
+				// default options
+				params = jQuery.extend(defaultParams, params);
+				
+				// setup tracking
+				$j("a").track(); // track external links, files, email addresses
+				$j("form").track({ event:"submit" }); // track external links
+			});
 		};
 	})();
 	
 	// this jQuery function adds GA tracking to an element
 	$.fn.track = function(params) {
 		// default options
-		params = jQuery.extend({
-			event:		'click',
-			external:	'/external/',
-			mailto:		'/mailtos/',
-			download:	'/downloads/',
-			itunes:		'/itunes/',
-			extensions: [
-					'pdf','doc','xls','csv','jpg','gif', 'mp3',
-					'swf','txt','ppt','zip','gz','dmg','xml'
-			],
-			trailingString: ''
-		}, params);
-		
-		// default url to track is href (obviously the default only works for links)
-		params.urlfn = params.urlfn || function(el,ev,opts) { 
-			var trackingURL = '';
-			var u = el.href || el.action;
-			var jQThis = $j(this);
-			
-			if (u.indexOf('://') == -1 && u.indexOf('mailto:') != 0){
-				// no protocol or mailto - internal link - check extension
-				var ext = u.split('.')[u.split('.').length - 1];			
-				var exts = opts.extensions;
-				
-				for(i = 0; i < exts.length; i++){
-					if(ext == exts[i]){
-						trackingURL = opts.download + u;
-						break;
-					}
-				}
-			} else if (u.indexOf('mailto:') == 0){
-				// mailto link - decorate
-				trackingURL = opts.mailto + u.substring(7);
-			} else if (u.indexOf('itpc://') == 0){
-				trackingURL = opts.itunes + u.replace(/itpc\:\/\/[^\/]*[\/]?/,'');
-			} else {
-				// complete URL - check domain
-				var regex = /([^:\/]+)*(?::\/\/)*([^:\/]+)(:[0-9]+)*\/?/i;
-				var linkparts = regex.exec(u);
-				var urlparts = regex.exec(location.href);
-				if(linkparts[2] != urlparts[2]) trackingURL = opts.external + u.replace(/[^:\/]+\:\/\//,'');
-			}
-			
-			return trackingURL;
-		};
+		params = jQuery.extend(defaultParams, params);
 		
 		// add the event to the passed in elements
 		return this.unbind(params.event+'.track').bind(params.event+'.track',function(e){
