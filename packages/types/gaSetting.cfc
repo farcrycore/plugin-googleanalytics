@@ -104,28 +104,36 @@
 		<cfset var qAccounts = querynew("value,name") />
 		<cfset var i = 0 />
 		
-		<cfparam name="arguments.auth" default="#getGAAuthToken()#" />
-		
-		<cfif len(arguments.auth)>
-			<cfhttp url="https://www.google.com/analytics/feeds/accounts/default">
-				<cfhttpparam type="header" name="Authorization" value="GoogleLogin auth=#arguments.auth#" />
-			</cfhttp>
+		<cftry>
+			<cfparam name="arguments.auth" default="#getGAAuthToken()#" />
 			
-			<cfif not cfhttp.statuscode eq "200 OK">
-				<cfthrow message="Error accessing Google API: #cfhttp.statuscode#" />
+			<cfif len(arguments.auth)>
+				<cfhttp url="https://www.google.com/analytics/feeds/accounts/default">
+					<cfhttpparam type="header" name="Authorization" value="GoogleLogin auth=#arguments.auth#" />
+				</cfhttp>
+				
+				<cfif not cfhttp.statuscode eq "200 OK">
+					<cfthrow message="Error accessing Google API: #cfhttp.statuscode#" />
+				<cfelse>
+					<cfset stResult = xmlparse(cfhttp.filecontent) />
+					<cfloop from="1" to="#arraylen(stResult.feed.entry)#" index="i">
+						<cfset queryaddrow(qAccounts) />
+						<cfset querysetcell(qAccounts,"value",listlast(stResult.feed.entry[i].id.xmlText,":")) />
+						<cfset querysetcell(qAccounts,"name",stResult.feed.entry[i].title.xmlText) />
+					</cfloop>
+				</cfif>
 			<cfelse>
-				<cfset stResult = xmlparse(cfhttp.filecontent) />
-				<cfloop from="1" to="#arraylen(stResult.feed.entry)#" index="i">
-					<cfset queryaddrow(qAccounts) />
-					<cfset querysetcell(qAccounts,"value",listlast(stResult.feed.entry[i].id.xmlText,":")) />
-					<cfset querysetcell(qAccounts,"name",stResult.feed.entry[i].title.xmlText) />
-				</cfloop>
+				<cfset queryaddrow(qAccounts) />
+				<cfset querysetcell(qAccounts,"value","") />
+				<cfset querysetcell(qAccounts,"name","Enter account details first") />
 			</cfif>
-		<cfelse>
-			<cfset queryaddrow(qAccounts) />
-			<cfset querysetcell(qAccounts,"value","") />
-			<cfset querysetcell(qAccounts,"name","Enter account details first") />
-		</cfif>
+		
+			<cfcatch>
+				<cfset queryaddrow(qAccounts) />
+				<cfset querysetcell(qAccounts,"value","") />
+				<cfset querysetcell(qAccounts,"name","#cfcatch.message#") />
+			</cfcatch>
+		</cftry>
 		
 		<cfreturn qAccounts />
 	</cffunction>
