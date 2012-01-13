@@ -12,7 +12,7 @@
 	
 	<!--- load/cache jquery --->
 	<skin:loadJS id="jquery" />
-	<skin:loadJS id="fcga" baseHREF="/farcry/plugins/googleanalytics/www/js/" lFiles="jquery.gatracker.js" />
+	<skin:loadJS id="fcga" />
 	
 	<skin:htmlHead id="ga"><cfoutput><script type="text/javascript">
 		var _gaq = _gaq || [];

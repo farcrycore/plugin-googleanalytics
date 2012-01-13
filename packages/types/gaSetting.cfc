@@ -48,7 +48,7 @@
 				<cfquery datasource="#application.dsn#" name="qAll" cachedwithin="#createTimeSpan(0,0,1,0)#">
 					SELECT objectID
 					FROM gaSetting
-					WHERE bActive = 1 AND lDomains IS NULL	
+					WHERE bActive = 1 AND isnull(lDomains,'') = ''
 				</cfquery>
 				<cfif qAll.recordCount>
 					<cfset stSetting = getData(qAll.objectID) />						
