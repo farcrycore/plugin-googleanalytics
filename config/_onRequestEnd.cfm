@@ -7,7 +7,7 @@
 <!--- grab config --->
 <cfset stSetting = application.fc.lib.ga.getSettings() />
 
-<cfif structkeyexists(request,"stObj") AND isstruct(request.stObj) AND NOT structIsEmpty(stSetting) and findnocase("/webtop",cgi.SCRIPT_NAME) eq 0 and not request.mode.ajax and (not isdefined("url.view") or not refind("(library|webtop|edit)",url.view)) and not GetPageContext().GetResponse().IsCommitted()>
+<cfif NOT structIsEmpty(stSetting) and findnocase("/webtop",cgi.SCRIPT_NAME) eq 0 and not request.mode.ajax and (not isdefined("url.view") or not refind("(library|webtop|edit)",url.view)) and not GetPageContext().GetResponse().IsCommitted()>
 	<cfset qCustomVars = application.fc.lib.ga.getCustomVars() />
 	
 	<!--- load/cache jquery --->
