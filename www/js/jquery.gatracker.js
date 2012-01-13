@@ -76,11 +76,11 @@
 	};
 	
 	$.ga = new (function(){
-		var _gaq = [];
+		window._gaq = window._gaq || [];
 		
 		// until the tracker is set, trackURL just adds urls to the queue
 		this.trackURL = function trackURL(url) {
-			_gaq.push(['_trackPageview', url]);
+			window._gaq.push(['_trackPageview', url]);
 		};
 		
 		// custom variables
@@ -91,14 +91,12 @@
 				var trimmedVal = encodeURIComponent(value).substr(0,nameLen).replace(/(%\w{2})?%\w?$/,"");
 				value = decodeURIComponent(trimmedVal);
 			}
-			_gaq.push(['_setCustomVar',slot,name,value,scope]);
+			window._gaq.push(['_setCustomVar',slot,name,value,scope]);
 		};
 		
 		// updates global scope with the Google tracker object, and sets up default tracking
-		this.setTracker = function setTracker(tracker,params) {
-			for (var i=_gaq.length-1;i>=0;i--)
-				tracker.unshift(_gaq[i]);
-			_gaq = tracker;
+		this.setTracker = function setTracker(urchin,params) {
+			_gaq.push(['_setAccount', urchin]);
 			
 			$(function setupJqueryGA(){
 				// default options

@@ -15,9 +15,7 @@
 	<skin:loadJS id="fcga" />
 	
 	<skin:htmlHead id="ga"><cfoutput><script type="text/javascript">
-		var _gaq = _gaq || [];
-		_gaq.push(['_setAccount', '#stSetting.urchinCode#']);
-		$j.ga.setTracker(_gaq,{ <cfif len(stSetting.types)>downloadClasses:['#listchangedelims(stSetting.types,"','")#']</cfif> });
+		$j.ga.setTracker('#stSetting.urchinCode#', { <cfif len(stSetting.types)>downloadClasses:['#listchangedelims(stSetting.types,"','")#']</cfif> });
 		<cfloop query="qCustomVars">$j.ga.setCustomVar(#slot#,"#name#","#value#",#scope#);
 		</cfloop>$j.ga.trackURL('#application.fc.lib.ga.getTrackableURL()#');
 		
