@@ -45,13 +45,13 @@
 
 			<cfelse>
 				<!--- check for blanket rule --->
-				<cfquery datasource="#application.dsn#" name="qAll" cachedwithin="#createTimeSpan(0,0,1,0)#">
+				<cfquery datasource="#application.dsn#" name="qSites" cachedwithin="#createTimeSpan(0,0,1,0)#">
 					SELECT objectID
 					FROM gaSetting
-					WHERE bActive = 1 AND isnull(lDomains,'') = ''
+					WHERE bActive = 1 AND (lDomains is null or lDomains like '')
 				</cfquery>
-				<cfif qAll.recordCount>
-					<cfset stSetting = getData(qAll.objectID) />						
+				<cfif qSites.recordCount>
+					<cfset stSetting = getData(qSites.objectID) />						
 				</cfif>
 				
 			</cfif>
