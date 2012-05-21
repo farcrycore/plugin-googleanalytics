@@ -35,7 +35,7 @@
 			var u = el.href || el.action;
 			var jQThis = $(this);
 			
-			if (u.indexOf('://') == -1 && u.indexOf('mailto:') != 0){ // no protocol or mailto - internal link
+			if (u.indexOf && u.indexOf('://') == -1 && u.indexOf('mailto:') != 0){ // no protocol or mailto - internal link
 				
 				// check for farcry downloads
 				if (u.indexOf("/download.cfm?")>-1){
@@ -58,12 +58,12 @@
 						return opts.download + title.replace(/<[^>]+>/g,'-').replace(/[^\w]+/g,'-');
 					}
 				}	
-			} else if (u.indexOf('mailto:') == 0){
+			} else if (u.indexOf && u.indexOf('mailto:') == 0){
 				// mailto link - decorate
 				return opts.mailto + u.substring(7);
-			} else if (u.indexOf('itpc://') == 0){
+			} else if (u.indexOf && u.indexOf('itpc://') == 0){
 				return opts.itunes + u.replace(/itpc\:\/\/[^\/]*[\/]?/,'');
-			} else {
+			} else if (u.indexOf) {
 				// complete URL - check domain
 				var regex = /([^:\/]+)*(?::\/\/)*([^:\/]+)(:[0-9]+)*\/?/i;
 				var linkparts = regex.exec(u);
