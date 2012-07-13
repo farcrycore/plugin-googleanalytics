@@ -51,6 +51,7 @@
 		<cfargument name="format" type="string" required="false" default="cfml" hint="json | cfml" />
 		
 		<cfset var q = querynew("slot,name,value,scope","integer,varchar,varchar,integer") />
+		<cfset var i = 0 />
 		
 		<cfloop from="1" to="#arraylen(request.fc.ga.aCustomVars)#" index="i">
 			<cfif isstruct(request.fc.ga.aCustomVars[i])>
