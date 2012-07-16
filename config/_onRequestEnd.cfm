@@ -4,6 +4,7 @@
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 <cfimport taglib="/farcry/core/tags/navajo" prefix="nj" />
 
+<cfparam name="request.mode.ajax" default="false">
 <!--- grab config --->
 <cfset stSetting = application.fc.lib.ga.getSettings() />
 
