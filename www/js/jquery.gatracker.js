@@ -77,7 +77,15 @@
 	
 	$.ga = new (function(){
 		window._gaq = window._gaq || [];
-		
+
+		// until the tracker is set, trackEvent just adds events to the queue
+		this.trackEvent = function trackEvent(category, action, label, value, noninteraction) {
+			label = label || null;
+			value = value || null;
+			noninteraction = noninteraction || null;
+			window._gaq.push(['_trackEvent', category, action, label, value, noninteraction]);
+		};
+				
 		// until the tracker is set, trackURL just adds urls to the queue
 		this.trackURL = function trackURL(url) {
 			window._gaq.push(['_trackPageview', url]);
@@ -121,4 +129,6 @@
 			if (url.length) $.ga.trackURL(url);
 		});
 	};
+
+
 })(jQuery);
