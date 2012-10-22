@@ -33,9 +33,9 @@
 		// default url to track is href (obviously the default only works for links)
 		urlfn : function urlFN(el,ev,opts) {
 			var u = el.href || el.action;
-			var jQThis = $(this);
+			var jQThis = $(el);
 			
-			if (u.indexOf && u.indexOf('://') == -1 && u.indexOf('mailto:') != 0){ // no protocol or mailto - internal link
+			if (u.indexOf && (u.indexOf('://') == -1 || u.indexOf(window.location.hostname)>1) && u.indexOf('mailto:') != 0){ // no protocol or mailto - internal link
 				
 				// check for farcry downloads
 				if (u.indexOf("/download.cfm?")>-1){
