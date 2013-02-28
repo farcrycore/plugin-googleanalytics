@@ -184,6 +184,7 @@
 		<cfset var auth = getGAAuthToken() />
 		<cfset var i = 0 />
 		<cfset var stReturn = structnew() />
+		<cfset var stArgs = structnew() />
 		
 		<cfset stReturn.results = querynew("empty") />
 		<cfset stReturn.args = duplicate(arguments) />
@@ -223,11 +224,16 @@
 					<cfset stReturn.aggregates[listlast(stReturn.xml.feed.aggregates.metric[i].xmlAttributes.name,":")] = stReturn.xml.feed.aggregates.metric[i].xmlAttributes.value />
 				</cfloop>
 				
+				<cfset stArgs.dimensions = arguments.dimensions />
+				<cfset stArgs.metrics = arguments.metrics />
 				<cfif structkeyexists(stReturn.xml.feed,"entry")>
-					<cfset stReturn.results = createResultQuery(arguments.dimensions,arguments.metrics,stReturn.xml.feed.entry) />
-				<cfelse>
-					<cfset stReturn.results = createResultQuery(arguments.dimensions,arguments.metrics) />
+					<cfset stArgs.results = stReturn.xml.feed.entry />
 				</cfif>
+				<cfif structkeyexists(arguments,"startdate") and structkeyexists(arguments,"enddate")>
+					<cfset stArgs.startDate = arguments.startDate />
+					<cfset stArgs.endDate = arguments.endDate />
+				</cfif>
+				<cfset stReturn.results = createResultQuery(argumentCollection=stArgs) />
 			</cfif>
 		</cfif>
 		
@@ -238,6 +244,8 @@
 		<cfargument name="dimensions" type="string" required="true" />
 		<cfargument name="metrics" type="string" required="true" />
 		<cfargument name="results" type="any" required="false" />
+		<cfargument name="startDate" type="date" required="false" />
+		<cfargument name="endDate" type="date" required="false" />
 		
 		<cfset var columns = listappend(replace(arguments.dimensions,"ga:","","all"),replace(arguments.metrics,"ga:","","all")) />
 		<cfset var columntypes = "" />
@@ -245,13 +253,19 @@
 		<cfset var qResult = "" />
 		<cfset var i = 0 />
 		<cfset var j = 0 />
+		<cfset var thisdate = "" />
+		<cfset var q = "" />
+		
+		<cfif listfindnocase(columns,"date")>
+			<cfset columns = listappend(columns,"year,quarter,month,week,dayofweek") />
+		</cfif>
 		
 		<cfloop list="#columns#" index="thiscolumn">
 			<cfswitch expression="#thiscolumn#">
 				<cfcase value="date">
 					<cfset columntypes = listappend(columntypes,"date") />
 				</cfcase>
-				<cfcase value="pageviews,uniquePageviews,bounces,entrances,exits,newVisits,timeOnPage,hour" delimiters=",">
+				<cfcase value="pageviews,uniquePageviews,bounces,entrances,exits,newVisits,timeOnPage,hour,year,quarter,month,week,dayofweek" delimiters=",">
 					<cfset columntypes = listappend(columntypes,"Integer") />
 				</cfcase>
 				<cfdefaultcase>
@@ -274,6 +288,38 @@
 			</cfloop>
 		</cfif>
 		
+		<cfif structkeyexists(arguments,"startDate") and listfindnocase(replace(arguments.dimensions,"ga:","","all"),"date")>
+			<cfset thisdate = createdatetime(year(arguments.startDate),month(arguments.startDate),day(arguments.startDate),0,0,0) />
+			<cfset arguments.endDate = dateadd("d",1,createdatetime(year(arguments.endDate),month(arguments.endDate),day(arguments.endDate),0,0,0)) />
+			
+			<cfloop condition="thisdate lt arguments.endDate">
+				<cfquery dbtype="query" name="q">select * from qResult where [date]=<cfqueryparam cfsqltype="cf_sql_timestamp" value="#thisdate#" /></cfquery>
+				
+				<cfif q.recordcount eq 0>
+					<cfset queryaddrow(qResult) />
+					<cfset querysetcell(qResult,"date",thisdate) />
+					<cfif listfindnocase(qResult.columnlist,"hour")>
+						<cfset querysetcell(qResult,"hour",hour(thisdate)) />
+					</cfif>
+					<cfloop list="#qResult.columnlist#" index="j">
+						<cfif listfindnocase("pageviews,uniquePageviews,bounces,entrances,exits,newVisits,timeOnPage",j)>
+							<cfset querysetcell(qResult,j,0) />
+						<cfelseif not listfindnocase("date,hour",j)>
+							<cfset querysetcell(qResult,j,"") />
+						</cfif>
+					</cfloop>
+				</cfif>
+				
+				<cfif listfindnocase(replace(arguments.dimensions,"ga:","","all"),"hour")>
+					<cfset thisdate = dateadd("h",1,thisdate) />
+				<cfelse>
+					<cfset thisdate = dateadd("d",1,thisdate) />
+				</cfif>
+			</cfloop>
+			
+			<cfquery dbtype="query" name="qResult">select * from qResult order by [date] asc</cfquery>
+		</cfif>
+		
 		<cfreturn qResult />
 	</cffunction>
 	
@@ -281,15 +327,45 @@
 		<cfargument name="query" type="query" required="true" hint="The result query" />
 		<cfargument name="key" type="string" required="true" hint="The value name" />
 		<cfargument name="value" type="string" required="true" hint="The value" />
+		<cfargument name="row" type="numeric" required="false" hint="Row to update" />
+		
+		<cfset var curval = "" />
 		
 		<cfset arguments.key = listlast(arguments.key,":") />
 		
+		<cfif not structkeyexists(arguments,"row")>
+			<cfset row = arguments.query.recordcount />
+		</cfif>
+		
 		<cfswitch expression="#arguments.key#">
 			<cfcase value="date">
-				<cfset querysetcell(arguments.query,arguments.key,createdate(left(arguments.value,"4"),mid(arguments.value,5,2),right(arguments.value,2))) />
+				<cfset curval = arguments.query[arguments.key][arguments.row] />
+				<cfif isdate(curval)>
+					<cfset curval = createdatetime(left(arguments.value,"4"),mid(arguments.value,5,2),right(arguments.value,2),hour(curval),0,0) />
+				<cfelse>
+					<cfset curval = createdatetime(left(arguments.value,"4"),mid(arguments.value,5,2),right(arguments.value,2),0,0,0) />
+				</cfif>
+				<cfset querysetcell(arguments.query,arguments.key,curval,arguments.row) />
+				<cfset querysetcell(arguments.query,"year",year(curval),arguments.row) />
+				<cfset querysetcell(arguments.query,"quarter",quarter(curval),arguments.row) />
+				<cfset querysetcell(arguments.query,"month",month(curval),arguments.row) />
+				<cfset querysetcell(arguments.query,"week",week(curval),arguments.row) />
+				<cfset querysetcell(arguments.query,"dayofweek",dayofweek(curval),arguments.row) />
+			</cfcase>
+			<cfcase value="hour">
+				<cfset querysetcell(arguments.query,arguments.key,arguments.value,arguments.row) />
+				
+				<cfif listfindnocase(arguments.query.columnlist,"date")>
+					<cfset curval = arguments.query["date"][arguments.row] />
+					<cfif isdate(curval)>
+						<cfset querysetcell(arguments.query,"date",createdatetime(year(curval),month(curval),day(curval),arguments.value,0,0),arguments.row) />
+					<cfelse>
+						<cfset querysetcell(arguments.query,"date",createdatetime(1970,1,1,arguments.value,0,0),arguments.row) />
+					</cfif>
+				</cfif>
 			</cfcase>
 			<cfdefaultcase>
-				<cfset querysetcell(arguments.query,arguments.key,arguments.value) />
+				<cfset querysetcell(arguments.query,arguments.key,arguments.value,arguments.row) />
 			</cfdefaultcase>
 		</cfswitch>
 	</cffunction>
