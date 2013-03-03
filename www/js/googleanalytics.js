@@ -3,8 +3,26 @@ if (!window.GA) {
 	
 	(function(){
 		GA.linechart = function drawLineChart(id, data, offsetdata, meta, width, height, randomize){
-			randomize = randomize || 0, xvalues = meta.xvalues.slice();
+			randomize = randomize || 0, xvalues = meta.xvalues.slice(), xlabels = meta.xlabels.slice(), newdata = [], newoffsetdata = [], newxvalues = [], newxlabels = [];
 			
+			// more than 100 points doesn't render very well as a line chart (might look at wider charts in these cases later)
+			while (data.length > 100){
+				newdata = [], newoffsetdata = [], newxvalues = [], newxlabels = [];
+				
+				for (var i=0; i<xlabels.length; i++)
+					newxlabels[i] = [];
+				
+				for (var i=0; i<data.length; i+=2){
+					newdata.push(data[i]+(data[i+1] || 0));
+					newoffsetdata.push(offsetdata[i]+(offsetdata[i+1] || 0));
+					newxvalues.push(xvalues[i]);
+					for (var j=0; j<xlabels.length; j++)
+						newxlabels[j].push(xlabels[j][i]);
+				}
+				
+				data = newdata, offsetdata = newoffsetdata, xvalues = newxvalues, xlabels = newxlabels;
+			}
+			console.log("dataset",data.length,offsetdata.length,xvalues.length,xlabels[0].length,xlabels[1].length);
 			if (randomize) {
 				for (var i = 0; i < data.length; i++) {
 					data[i] += Math.floor(Math.random() * randomize);
@@ -21,10 +39,10 @@ if (!window.GA) {
 				this.tags = r.set();
 				
 				for (var i = 0, ii = this.y.length; i < ii; i++) {
-					this.tags.push(r.tag(this.x, this.y[i], this.values[i], 160, 10).insertBefore(this).attr([{
+					this.tags.push(r.tag(this.x, this.y[i], xlabels[i][xvalues.indexOf(this.axis)] + ": " + this.values[i], 160, 10).insertBefore(this).attr([{
 						fill: "#fff"
 					}, {
-						fill: "#000"
+						fill: Raphael.g.colors[i]
 					}]));
 				}
 			}, function(){
@@ -88,7 +106,7 @@ if (!window.GA) {
 				if (state.data[state.type].width)
 					self.width(state.data[state.type].width);
 				
-				GA[state.type](self[0], data, offsetdata, meta, self.width(), self.height(),100);
+				GA[state.type](self[0], data, offsetdata, meta, self.width(), self.height(),0);
 			});
 		};
 		
@@ -96,7 +114,7 @@ if (!window.GA) {
 			if (key && state[key] !== val) {
 				state[key] = val;
 				
-				if (key === "url" && state.url.length && state.url.indexOf("?")) 
+				if (key === "url" && state.url.length && !state.url.indexOf("?")) 
 					state.url += "?";
 			}
 			
@@ -117,6 +135,25 @@ if (!window.GA) {
 				if (key === "url" || key === "period" || key === "path") {
 					$j.getJSON(state.url + "&period=" + state.period + "&path=" + state.path + "&periodoffset=1", function(data){
 						state.data = data;
+						console.log("ajax",data.data.bounces.length,data.offsetdata.bounces.length,data.linechart.xvalues.length);
+						// convert various array-of-number-strings values to arrays-of-numbers values
+						for (var metric in state.data.data){
+							if (["timeonpage","week","quarter","bounces","entrances","uniquepageviews","newvisits","dayofweek","month","pageviews","exits"].indexOf(metric) > -1){
+								state.data.data[metric] = state.data.data[metric].map(function(v){ return parseInt(v); });
+								state.data.offsetdata[metric] = state.data.offsetdata[metric].map(function(v){ return parseInt(v); });
+							}
+						}
+						if (state.data.data["hour"]){
+							state.data.data["hour"] = state.data.data["hour"].map(function(v){ return parseInt(v); });
+							state.data.offsetdata["hour"] = state.data.offsetdata["hour"].map(function(v){ return parseInt(v); });
+						}
+						if (state.data.linechart.xvalues)
+							state.data.linechart.xvalues = state.data.linechart.xvalues.map(function(v){ return parseInt(v); });
+						if (state.data.dotchart.xvalues)
+							state.data.dotchart.xvalues = state.data.dotchart.xvalues.map(function(v){ return parseInt(v); });
+						if (state.data.dotchart.yvalues)
+							state.data.dotchart.yvalues = state.data.dotchart.yvalues.map(function(v){ return parseInt(v); });
+						
 						
 						if (state.data[state.type].disabled) {
 							$j("#charts").html("<br><p id='errorMsg'>"+state.data[state.type].disabled+"</p>");

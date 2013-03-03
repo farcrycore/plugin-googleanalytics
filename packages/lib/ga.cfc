@@ -170,4 +170,410 @@
 		<cfreturn trackableURL />
 	</cffunction>
 	
+	
+	<cffunction name="parseProxy" access="private" output="false" returntype="struct">
+		<cfargument name="proxy" type="string" required="true" />
+		
+		<cfset var stResult = structnew() />
+		
+		<cfif len(arguments.proxy)>
+			<cfif listlen(arguments.proxy,"@") eq 2>
+				<cfset stResult.login = listfirst(arguments.proxy,"@") />
+				<cfset stResult.user = listfirst(stResult.login,":") />
+				<cfset stResult.password = listlast(stResult.login,":") />
+			<cfelse>
+				<cfset stResult.user = "" />
+				<cfset stResult.password = "" />
+			</cfif>
+			<cfset stResult.server = listlast(arguments.proxy,"@") />
+			<cfset stResult.domain = listfirst(stResult.server,":") />
+			<cfif listlen(stResult.server,":") eq 2>
+				<cfset stResult.port = listlast(stResult.server,":") />
+			<cfelse>
+				<cfset stResult.port = "80" />
+			</cfif>
+		<cfelse>
+			<cfset stResult.user = "" />
+			<cfset stResult.password = "" />
+			<cfset stResult.domain = "" />
+			<cfset stREsult.port = "80" />
+		</cfif>
+		
+		<cfreturn stResult />
+	</cffunction>
+
+	<cffunction name="getAuthorisationURL" access="public" output="false" returntype="string">
+		<cfargument name="clientid" type="string" required="true" />
+		<cfargument name="redirectURL" type="string" required="true" />
+		<cfargument name="accessType" type="string" required="false" default="offline" />
+		<cfargument name="state" type="string" required="false" default="" />
+		
+		<cfreturn "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=#arguments.clientid#&redirect_uri=#urlencodedformat(arguments.redirectURL)#&scope=https://www.googleapis.com/auth/analytics.readonly&access_type=#arguments.accesstype#&state=#urlencodedformat(arguments.state)#&approval_prompt=force" />
+	</cffunction>
+	
+	<cffunction name="getRefreshToken" access="public" output="false" returntype="string">
+		<cfargument name="authorizationCode" type="string" required="true" />
+		<cfargument name="clientID" type="string" required="true" />
+		<cfargument name="clientSecret" type="string" required="true" />
+		<cfargument name="redirectURL" type="string" required="true" />
+		<cfargument name="proxy" type="string" required="false" default="" />
+		
+		<cfset var cfhttp = structnew() />
+		<cfset var stResult = structnew() />
+		<cfset var stProxy = parseProxy(arguments.proxy) />
+		
+		<cfhttp url="https://accounts.google.com/o/oauth2/token" method="POST" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+			<cfhttpparam type="formfield" name="code" value="#arguments.authorizationCode#" />
+			<cfhttpparam type="formfield" name="client_id" value="#arguments.clientID#" />
+			<cfhttpparam type="formfield" name="client_secret" value="#arguments.clientSecret#" />
+			<cfhttpparam type="formfield" name="redirect_uri" value="#arguments.redirectURL#" />
+			<cfhttpparam type="formfield" name="grant_type" value="authorization_code" />
+		</cfhttp>
+		
+		<cfif not cfhttp.statuscode eq "200 OK">
+			<cfthrow message="Error accessing Google API: #cfhttp.statuscode# (#cfhttp.filecontent#)" detail="#cfhttp.filecontent#" />
+		</cfif>
+		
+		<cfset stResult = deserializeJSON(cfhttp.FileContent.toString()) />
+		
+		<cfset this.access_token = stResult.access_token />
+		<cfset this.access_token_expires = dateadd("s",stResult.expires_in,now()) />
+		
+		<cfreturn stResult.refresh_token />
+	</cffunction>
+	
+	<cffunction name="getAccessToken" access="public" output="false" returntype="string">
+		<cfargument name="refreshToken" type="string" required="true" />
+		<cfargument name="clientID" type="string" required="true" />
+		<cfargument name="clientSecret" type="string" required="true" />
+		<cfargument name="proxy" type="string" required="false" default="" />
+		<cfargument name="force" type="boolean" required="false" default="false" />
+		
+		<cfset var cfhttp = structnew() />
+		<cfset var stResult = structnew() />
+		<cfset var stProxy = parseProxy(arguments.proxy) />
+		
+		<cfif not isdefined("this.access_token") or not isdefined("this.access_token_expires") or datecompare(this.access_token_expires,now()) lt 0 or arguments.force>
+			<cfhttp url="https://accounts.google.com/o/oauth2/token" method="POST" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+				<cfhttpparam type="formfield" name="refresh_token" value="#arguments.refreshToken#" />
+				<cfhttpparam type="formfield" name="client_id" value="#arguments.clientID#" />
+				<cfhttpparam type="formfield" name="client_secret" value="#arguments.clientSecret#" />
+				<cfhttpparam type="formfield" name="grant_type" value="refresh_token" />
+			</cfhttp>
+			
+			<cfif not cfhttp.statuscode eq "200 OK">
+				<cfthrow message="Error accessing Google API: #cfhttp.statuscode#" detail="#cfhttp.filecontent#" />
+			</cfif>
+			
+			<cfset stResult = deserializeJSON(cfhttp.FileContent.toString()) />
+			
+			<cfset this.access_token = stResult.access_token />
+			<cfset this.access_token_expires = dateadd("s",stResult.expires_in,now()) />
+		</cfif>
+		
+		<cfreturn this.access_token />
+	</cffunction>
+	
+	<cffunction name="getAccounts" access="public" output="false" returntype="query">
+		<cfargument name="accessToken" type="string" required="true" />
+		<cfargument name="proxy" type="string" required="false" default="" />
+		
+		<cfset var cfhttp = structnew() />
+		<cfset var stResult = structnew() />
+		<cfset var qAccounts = querynew("id,name") />
+		<cfset var i = 0 />
+		<cfset var stProxy = parseProxy(arguments.proxy) />
+		
+		<cfhttp url="https://www.googleapis.com/analytics/v3/management/accounts" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+			<cfhttpparam type="header" name="Authorization" value="Bearer #arguments.accessToken#" />
+		</cfhttp>
+		
+		<cfif not cfhttp.statuscode eq "200 OK">
+			<cfthrow message="Error accessing Google API: #cfhttp.statuscode#" detail="#cfhttp.filecontent#" />
+		</cfif>
+		
+		<cfset stResult = deserializeJSON(cfhttp.filecontent.toString()) />
+		<cfloop from="1" to="#arraylen(stResult.items)#" index="i">
+			<cfset queryaddrow(qAccounts) />
+			<cfset querysetcell(qAccounts,"id",stResult.items[i].id) />
+			<cfset querysetcell(qAccounts,"name",stResult.items[i].name) />
+		</cfloop>
+		
+		<cfquery dbtype="query" name="qAccounts">
+			select * from qAccounts order by [name] asc
+		</cfquery>
+		
+		<cfreturn qAccounts />
+	</cffunction>
+	
+	<cffunction name="getWebProperties" access="public" output="false" returntype="query">
+		<cfargument name="accountID" type="string" required="true" />
+		<cfargument name="accessToken" type="string" required="true" />
+		<cfargument name="proxy" type="string" required="false" default="" />
+		
+		<cfset var cfhttp = structnew() />
+		<cfset var stResult = structnew() />
+		<cfset var qWebProperties = querynew("id,name") />
+		<cfset var i = 0 />
+		<cfset var stProxy = parseProxy(arguments.proxy) />
+		
+		<cfhttp url="https://www.googleapis.com/analytics/v3/management/accounts/#arguments.accountID#/webproperties" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+			<cfhttpparam type="header" name="Authorization" value="Bearer #arguments.accessToken#" />
+		</cfhttp>
+		
+		<cfif not cfhttp.statuscode eq "200 OK">
+			<cfthrow message="Error accessing Google API: #cfhttp.statuscode#" detail="#cfhttp.filecontent#" />
+		</cfif>
+		
+		<cfset stResult = deserializeJSON(cfhttp.filecontent.toString()) />
+		<cfloop from="1" to="#arraylen(stResult.items)#" index="i">
+			<cfset queryaddrow(qWebProperties) />
+			<cfset querysetcell(qWebProperties,"id",stResult.items[i].id) />
+			<cfset querysetcell(qWebProperties,"name",stResult.items[i].websiteUrl) />
+		</cfloop>
+		
+		<cfquery dbtype="query" name="qWebProperties">
+			select * from qWebProperties order by [name] asc
+		</cfquery>
+		
+		<cfreturn qWebProperties />
+	</cffunction>
+	
+	<cffunction name="getProfiles" access="public" output="false" returntype="query">
+		<cfargument name="accountID" type="string" required="true" />
+		<cfargument name="webPropertyID" type="string" required="true" />
+		<cfargument name="accessToken" type="string" required="true" />
+		<cfargument name="proxy" type="string" required="false" default="" />
+		
+		<cfset var cfhttp = structnew() />
+		<cfset var stResult = structnew() />
+		<cfset var qProfiles = querynew("id,name") />
+		<cfset var i = 0 />
+		<cfset var stProxy = parseProxy(arguments.proxy) />
+		
+		<cfhttp url="https://www.googleapis.com/analytics/v3/management/accounts/#arguments.accountID#/webproperties/#arguments.webPropertyID#/profiles" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+			<cfhttpparam type="header" name="Authorization" value="Bearer #arguments.accessToken#" />
+		</cfhttp>
+		
+		<cfif not cfhttp.statuscode eq "200 OK">
+			<cfthrow message="Error accessing Google API: #cfhttp.statuscode#" detail="#cfhttp.filecontent#" />
+		</cfif>
+		
+		<cfset stResult = deserializeJSON(cfhttp.filecontent.toString()) />
+		<cfloop from="1" to="#arraylen(stResult.items)#" index="i">
+			<cfset queryaddrow(qProfiles) />
+			<cfset querysetcell(qProfiles,"id",stResult.items[i].id) />
+			<cfset querysetcell(qProfiles,"name",stResult.items[i].name) />
+		</cfloop>
+		
+		<cfquery dbtype="query" name="qProfiles">
+			select * from qProfiles order by [name] asc
+		</cfquery>
+		
+		<cfreturn qProfiles />
+	</cffunction>
+	
+	
+	
+	<cffunction name="getDataAll" access="public" output="false" returntype="struct">
+		<!--- Same arguments as getData, without maxResults --->
+		
+		<cfset var stNewData = structnew() />
+		
+		<cfset arguments.startIndex = 1 />
+		<cfset arguments.maxResults = 1000 />
+		<cfset stNewData = getData(argumentCollection=arguments) />
+		<cfset stData = stNewData />
+		
+		<cfloop condition="stNewData.results.recordcount and stNewData.startIndex + arguments.maxResults lte stNewData.totalResults">
+			<cfset arguments.startIndex = arguments.startIndex + arguments.maxResults />
+			<cfset stNewData = getData(argumentCollection=arguments) />
+			<cfquery dbtype="query" name="stData.results">
+				select	#stData.results.columnlist#
+				from	stData.results
+				
+				UNION
+				
+				select	#stNewData.results.columnlist#
+				from	stNewData.results
+			</cfquery>
+		</cfloop>
+		
+		<cfreturn stData />
+	</cffunction>
+	
+	<cffunction name="getData" access="public" output="false" returntype="struct">
+		<cfargument name="dimensions" type="string" required="false" />
+		<cfargument name="metrics" type="string" required="true" />
+		<cfargument name="sort" type="string" required="false" />
+		<cfargument name="filters" type="string" required="false" />
+		<cfargument name="segment" type="string" required="false" />
+		<cfargument name="startDate" type="date" required="true" />
+		<cfargument name="endDate" type="date" required="true" />
+		<cfargument name="startIndex" type="string" required="false" />
+		<cfargument name="maxResults" type="string" required="false" />
+		<cfargument name="orderBy" type="string" required="false" />
+		<cfargument name="proxy" type="string" required="false" default="" />
+		
+		<cfargument name="profileID" type="string" required="true" />
+		<cfargument name="accessToken" type="string" required="true" />
+		
+		<cfset var cfhttp = structnew() />
+		<cfset var stResult = structnew() />
+		<cfset var gaurl = "" />
+		<cfset var i = 0 />
+		<cfset var stReturn = structnew() />
+		<cfset var stProxy = parseProxy(arguments.proxy) />
+		
+		<cfset stReturn.results = querynew("empty") />
+		<cfset stReturn.args = duplicate(arguments) />
+		
+		<cfif len(arguments.profileID) and len(arguments.accessToken)>
+			<cfset gaurl = "https://www.googleapis.com/analytics/v3/data/ga?ids=ga:#arguments.profileid#" />
+			
+			<cfif structkeyexists(arguments,"dimensions")><cfset gaurl = "#gaurl#&dimensions=#arguments.dimensions#" /></cfif>
+			<cfset gaurl = "#gaurl#&metrics=#arguments.metrics#" />
+			<cfif structkeyexists(arguments,"sort")><cfset gaurl = "#gaurl#&sort=#arguments.sort#" /></cfif>
+			<cfif structkeyexists(arguments,"filters")><cfset gaurl = "#gaurl#&filters=#urlencodedformat(arguments.filters)#" /></cfif>
+			<cfif structkeyexists(arguments,"segment")><cfset gaurl = "#gaurl#&segment=#arguments.segment#" /></cfif>
+			<cfset gaurl = "#gaurl#&start-date=#dateformat(arguments.startDate,'yyyy-mm-dd')#" />
+			<cfset gaurl = "#gaurl#&end-date=#dateformat(arguments.endDate,'yyyy-mm-dd')#" />
+			<cfif structkeyexists(arguments,"startIndex")><cfset gaurl = "#gaurl#&start-index=#arguments.startIndex#" /></cfif>
+			<cfif structkeyexists(arguments,"maxResults")><cfset gaurl = "#gaurl#&max-results=#arguments.maxResults#" /></cfif>
+			
+			<cfset gaurl = "#gaurl#&v=2&prettyprint=false" />
+			
+			<cfparam name="arguments.dimensions" default="" />
+			
+			<cfhttp url="#gaurl#" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+				<cfhttpparam type="header" name="Authorization" value="Bearer #arguments.accessToken#" />
+			</cfhttp>
+			
+			<cfif not cfhttp.statuscode eq "200 OK">
+				<cfthrow message="Error accessing Google API: #cfhttp.statuscode# - #gaurl#" detail="#cfhttp.filecontent#" />
+			<cfelse>
+				<cfset stReturn.data = deserializeJSON(cfhttp.filecontent) />
+				<cfset stReturn.id = stReturn.data.id />
+				<cfset stReturn.totalResults = stReturn.data.totalResults />
+				<cfset stReturn.startIndex = stReturn.data.query["start-index"] />
+				
+				<cfset stReturn.aggregates = structnew() />
+				<cfloop collection="#stReturn.data.totalsForAllResults#" item="i">
+					<cfset stReturn.aggregates[i] = stReturn.data.totalsForAllResults[i] />
+				</cfloop>
+				
+				<cfset stArgs.columns = stReturn.data.columnHeaders />
+				<cfif structkeyexists(stReturn.data,"rows")>
+					<cfset stArgs.results = stReturn.data.rows />
+				</cfif>
+				<cfif structkeyexists(arguments,"startdate") and structkeyexists(arguments,"enddate")>
+					<cfset stArgs.startDate = arguments.startDate />
+					<cfset stArgs.endDate = arguments.endDate />
+				</cfif>
+				<cfset stReturn.results = createResultQuery(argumentCollection=stArgs) />
+			</cfif>
+		</cfif>
+		
+		<cfreturn stReturn />
+	</cffunction>
+	
+	<cffunction name="createResultQuery" access="private" output="false" returntype="query" hint="Creates a result query for the specified dimensions and metrics">
+		<cfargument name="columns" type="array" required="true" />
+		<cfargument name="results" type="any" required="false" />
+		<cfargument name="startDate" type="date" required="false" />
+		<cfargument name="endDate" type="date" required="false" />
+		
+		<cfset var columnnames = "" />
+		<cfset var columntypes = "" />
+		<cfset var thiscolumn = "" />
+		<cfset var qResult = "" />
+		<cfset var i = 0 />
+		<cfset var j = 0 />
+		<cfset var thisdate = "" />
+		<cfset var q = "" />
+		
+		<cfloop from="1" to="#arraylen(arguments.columns)#" index="i">
+			<cfset thiscolumn = listlast(arguments.columns[i].name,":") />
+			<cfset columnnames = listappend(columnnames,thiscolumn) />
+			
+			<cfswitch expression="#thiscolumn#">
+				<cfcase value="date">
+					<cfset columntypes = listappend(columntypes,"date") />
+				</cfcase>
+				<cfcase value="pageviews,uniquePageviews,bounces,entrances,exits,newVisits,timeOnPage,hour" delimiters=",">
+					<cfset columntypes = listappend(columntypes,"Integer") />
+				</cfcase>
+				<cfdefaultcase>
+					<cfset columntypes = listappend(columntypes,"varchar") />
+				</cfdefaultcase>
+			</cfswitch>
+		</cfloop>
+		
+		<cfif listfindnocase(columnnames,"date")>
+			<cfset columnnames = listappend(columnnames,"year,quarter,month,week,dayofweek") />
+			<cfset columntypes = listappend(columntypes,"Integer,Integer,Integer,Integer,Integer") />
+		</cfif>
+		
+		<cfset qResult = querynew(columnnames,columntypes) />
+		
+		<cfif structkeyexists(arguments,"results")>
+			<cfloop from="1" to="#arraylen(arguments.results)#" index="i">
+				<cfset queryaddrow(qResult) />
+				<cfloop from="1" to="#arraylen(arguments.results[i])#" index="j">
+					<cfset setResultValue(qResult,listlast(arguments.columns[j].name,":"),arguments.results[i][j]) />
+				</cfloop>
+			</cfloop>
+		</cfif>
+		
+		
+		<cfreturn qResult />
+	</cffunction>
+	
+	<cffunction name="setResultValue" access="private" output="false" returntype="void" hint="Sets a value in a result query, according to the relevant type">
+		<cfargument name="query" type="query" required="true" hint="The result query" />
+		<cfargument name="key" type="string" required="true" hint="The value name" />
+		<cfargument name="value" type="string" required="true" hint="The value" />
+		<cfargument name="row" type="numeric" required="false" hint="Row to update" />
+		
+		<cfset var curval = "" />
+		
+		<cfset arguments.key = listlast(arguments.key,":") />
+		
+		<cfif not structkeyexists(arguments,"row")>
+			<cfset row = arguments.query.recordcount />
+		</cfif>
+		
+		<cfswitch expression="#arguments.key#">
+			<cfcase value="date">
+				<cfset curval = arguments.query[arguments.key][arguments.row] />
+				<cfif isdate(curval)>
+					<cfset curval = createdatetime(left(arguments.value,"4"),mid(arguments.value,5,2),right(arguments.value,2),hour(curval),0,0) />
+				<cfelse>
+					<cfset curval = createdatetime(left(arguments.value,"4"),mid(arguments.value,5,2),right(arguments.value,2),0,0,0) />
+				</cfif>
+				<cfset querysetcell(arguments.query,arguments.key,curval,arguments.row) />
+				<cfset querysetcell(arguments.query,"year",year(curval),arguments.row) />
+				<cfset querysetcell(arguments.query,"quarter",quarter(curval),arguments.row) />
+				<cfset querysetcell(arguments.query,"month",month(curval),arguments.row) />
+				<cfset querysetcell(arguments.query,"week",week(curval),arguments.row) />
+				<cfset querysetcell(arguments.query,"dayofweek",dayofweek(curval),arguments.row) />
+			</cfcase>
+			<cfcase value="hour">
+				<cfset querysetcell(arguments.query,arguments.key,arguments.value,arguments.row) />
+				
+				<cfif listfindnocase(arguments.query.columnlist,"date")>
+					<cfset curval = arguments.query["date"][arguments.row] />
+					<cfif isdate(curval)>
+						<cfset querysetcell(arguments.query,"date",createdatetime(year(curval),month(curval),day(curval),arguments.value,0,0),arguments.row) />
+					<cfelse>
+						<cfset querysetcell(arguments.query,"date",createdatetime(1970,1,1,arguments.value,0,0),arguments.row) />
+					</cfif>
+				</cfif>
+			</cfcase>
+			<cfdefaultcase>
+				<cfset querysetcell(arguments.query,arguments.key,arguments.value,arguments.row) />
+			</cfdefaultcase>
+		</cfswitch>
+	</cffunction>
+	
 </cfcomponent>

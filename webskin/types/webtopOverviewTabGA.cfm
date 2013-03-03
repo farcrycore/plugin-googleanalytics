@@ -7,26 +7,36 @@
 	
 	<cfparam name="url.period" /><!--- week | month | quarter | year --->
 	<cfparam name="url.path" /><!--- exact | prefix --->
-	<cfparam name="url.periodoffset" /><!--- 0 for this period, 1 for last period, etc. NOTE: in cases where periods don't have the same number of records (e.g. different numbers of days in months) they will be cut off to be the same as the current period --->
 	
 	<cfset application.fc.lib.ga.initializeRequest() />
 	<cfset request.fc.ga.stObject = stObj />
 	
+	<cfset stSettings = application.fc.lib.ga.getSettings() />
+	
 	<cfset st = structnew() />
 	<cfset st.metrics='ga:pageviews,ga:uniquePageviews,ga:bounces,ga:entrances,ga:exits,ga:newVisits,ga:timeOnPage' />
 	<cfset st.startIndex=1 />
+	<cfset st.accessToken = application.fc.lib.ga.getAccessToken(listrest(stSettings.googleRefreshToken,":"),stSettings.googleClientID,stSettings.googleClientSecret,stSettings.googleProxy) />
+	<cfset st.profileID = stSettings.googleProfileID />
 	
 	<cfset stLocal.stResult = structnew() />
-	
-	<cfset stLocal.o = application.fapi.getContentType(typename="gaSetting") />
+	<cfset stLocal.url = rereplace(application.fc.lib.ga.getTrackableURL(),"^//","/") />
 	
 	<cfswitch expression="#url.path#">
 		<cfcase value="exact">
-			<cfset st.filters='ga:pagePath%3D%3D' & urlencodedformat(application.fc.lib.ga.getTrackableURL()) />
+			<cfset st.filters = 'ga:pagepath==' & stLocal.url & ",ga:pagepath==#application.url.webroot#/index.cfm?objectid=#stObj.objectid#" />
+			
+			<cfif right(stLocal.url,1) eq "/">
+				<cfset st.filters = "#st.filters#,ga:pagepath==#mid(stLocal.url,1,len(stLocal.url)-1)#" />
+			</cfif>
+			
+			<cfif stLocal.url eq "/">
+				<cfset st.filters = "#st.filters#,ga:pagepath==#application.url.webroot#/index.cfm" />
+			</cfif>
 		</cfcase>
 		
 		<cfcase value="prefix">
-			<cfset st.filters='ga:pagePath%3D~' & urlencodedformat("^" & replace(application.fc.lib.ga.getTrackableURL(),".","\.","ALL")) />
+			<cfset st.filters = 'ga:pagepath=~' & replace(stLocal.url,".","\.","ALL") />
 		</cfcase>
 	</cfswitch>
 	
@@ -39,22 +49,27 @@
 			<cfset st.startDate = dateadd("d",-6,st.endDate) />
 			<cfset st.maxResults = 24 * 7 />
 			
-			<cfset stLocal.qData = stLocal.o.getGAData(argumentCollection=st).results />
+			<cfset stLocal.result = application.fc.lib.ga.getData(argumentCollection=st) />
+			<cfset stLocal.qData = stLocal.result.results />
+			
+			<!--- Offset data --->
+			<cfset st.startDate = dateadd("d",-7,st.startDate) />
+			<cfset st.endDate = dateadd("d",-7,st.endDate) />
+			<cfset stLocal.qOffsetData = application.fc.lib.ga.getData(argumentCollection=st).results />
 			
 			<!--- Result metadata --->
 			<cfset stLocal.stResult["linechart"] = structnew() />
 			<cfset stLocal.stResult["linechart"]["xvalues"] = arrayrange(0,st.maxResults) />
+			<cfset stLocal.stResult["linechart"]["xlabels"] = [ [], [] ] />
+			<cfloop query="stLocal.qData">
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][1],dateformat(stLocal.qData["date"][stLocal.qData.currentrow],"ddd") & " " & timeformat(stLocal.qData["date"][stLocal.qData.currentrow],"hhtt")) />
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][2],dateformat(stLocal.qOffsetData["date"][stLocal.qData.currentrow],"ddd") & " " & timeformat(stLocal.qOffsetData["date"][stLocal.qData.currentrow],"hhtt")) />
+			</cfloop>
 			<cfset stLocal.stResult["dotchart"] = structnew() />
-			<cfset stLocal.stResult["dotchart"]["xlabels"] = ["12am", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12pm", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"] />
+			<cfset stLocal.stResult["dotchart"]["xlabels"] = ["12m", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12n", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"] />
 			<cfset stLocal.stResult["dotchart"]["ylabels"] = ["#dateformat(st.startDate,'ddd')#", "#dateformat(dateadd('d',1,st.startDate),'ddd')#", "#dateformat(dateadd('d',2,st.startDate),'ddd')#", "#dateformat(dateadd('d',3,st.startDate),'ddd')#", "#dateformat(dateadd('d',4,st.startDate),'ddd')#", "#dateformat(dateadd('d',5,st.startDate),'ddd')#", "#dateformat(dateadd('d',6,st.startDate),'ddd')#"] />
 			<cfset stLocal.stResult["dotchart"]["xvalues"] = columntoarray(stLocal.qData,"hour") />
 			<cfset stLocal.stResult["dotchart"]["yvalues"] = columntoarray(stLocal.qData,"dayofweek") />
-			
-			<cfif url.periodoffset>
-				<cfset st.startDate = dateadd("d",-7 * url.periodOffset,st.startDate) />
-				<cfset st.endDate = dateadd("d",-7 * url.periodOffset,st.endDate) />
-				<cfset stLocal.qOffsetData = stLocal.o.getGAData(argumentCollection=st).results />
-			</cfif>
 			
 		</cfcase>
 		
@@ -65,23 +80,28 @@
 			<cfset st.startDate = dateadd("d",-29,st.endDate) />
 			<cfset st.maxResults = (datediff("d",st.startDate,st.endDate) + 1) />
 			
-			<cfset stLocal.qData = stLocal.o.getGAData(argumentCollection=st).results />
+			<cfset stLocal.qData = application.fc.lib.ga.getData(argumentCollection=st).results />
+			
+			<!--- Offset data --->
+			<cfset st.startDate = dateadd("d",-30 * url.periodOffset,st.startDate) />
+			<cfset st.endDate = dateadd("d",-30 * url.periodOffset,st.endDate) />
+			<cfset stLocal.qOffsetData = application.fc.lib.ga.getData(argumentCollection=st).results />
 			
 			<!--- Result metadata --->
 			<cfset stLocal.stResult["linechart"] = structnew() />
 			<cfset stLocal.stResult["linechart"]["xvalues"] = arrayrange(0,st.maxResults) />
+			<cfset stLocal.stResult["linechart"]["xlabels"] = [ [], [] ] />
+			<cfloop query="stLocal.qData">
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][1],dateformat(stLocal.qData["date"][stLocal.qData.currentrow],"d mmm")) />
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][2],dateformat(stLocal.qOffsetData["date"][stLocal.qData.currentrow],"d mmm")) />
+			</cfloop>
 			<cfset stLocal.stResult["dotchart"] = structnew() />
 			<cfset stLocal.stResult["dotchart"]["xlabels"] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] />
-			<cfset stLocal.stResult["dotchart"]["ylabels"] = arrayrange(start=stLocal.qData.week[1],end=stLocal.qData.week[stLocal.qData.recordcount]+1,prefix="Week ") />
+			<cfset stLocal.stResult["dotchart"]["ylabels"] = arrayprefix(source=columntoarray(stLocal.qData,"week",true),prefix="Week ") />
 			<cfset stLocal.stResult["dotchart"]["xvalues"] = columntoarray(stLocal.qData,"dayofweek") />
-			<cfset stLocal.stResult["dotchart"]["yvalues"] = columntoarray(stLocal.qData,"week") />
+			<cfset stLocal.stResult["dotchart"]["yvalues"] = arrayrenumber(columntoarray(stLocal.qData,"week"),stLocal.qData.week[1],53) />
 			<cfset stLocal.stResult["dotchart"]["width"] = 300 /><!--- Override default chart height --->
 			
-			<cfif url.periodoffset>
-				<cfset st.endDate = dateadd("d",-1,dateadd("m",1,st.startDate)) />
-				<cfset st.startDate = dateadd("d",-29,st.endDate) />
-				<cfset stLocal.qOffsetData = stLocal.o.getGAData(argumentCollection=st).results />
-			</cfif>
 		</cfcase>
 		
 		<cfcase value="quarter">
@@ -91,24 +111,29 @@
 			<cfset st.startDate = dateadd("d",-89,st.endDate) />
 			<cfset st.maxResults = datediff("d",st.startDate,st.endDate) + 1 />
 			
-			<cfset stLocal.qData = stLocal.o.getGAData(argumentCollection=st).results />
+			<cfset stLocal.qData = application.fc.lib.ga.getData(argumentCollection=st).results />
+			
+			<!--- Offset data --->
+			<cfset st.startDate = dateadd("d",-90 * url.periodOffset,st.startDate) />
+			<cfset st.endDate = dateadd("d",-90 * url.periodOffset,st.endDate) />
+			<cfset stLocal.qOffsetData = application.fc.lib.ga.getData(argumentCollection=st).results />
 			
 			<!--- Result metadata --->
 			<cfset stLocal.stResult["linechart"] = structnew() />
 			<cfset stLocal.stResult["linechart"]["xvalues"] = arrayrange(0,st.maxResults) />
+			<cfset stLocal.stResult["linechart"]["xlabels"] = [ [], [] ] />
+			<cfloop query="stLocal.qData">
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][1],dateformat(stLocal.qData["date"][stLocal.qData.currentrow],"d mmm")) />
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][2],dateformat(stLocal.qOffsetData["date"][stLocal.qData.currentrow],"d mmm")) />
+			</cfloop>
 			<cfset stLocal.stResult["dotchart"] = structnew() />
 			<cfset stLocal.stResult["dotchart"]["xlabels"] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] />
-			<cfset stLocal.stResult["dotchart"]["ylabels"] = arrayrange(start=stLocal.qData.week[1],end=stLocal.qData.week[stLocal.qData.recordcount]+1,prefix="Week ") />
+			<cfset stLocal.stResult["dotchart"]["ylabels"] = arrayprefix(source=columntoarray(stLocal.qData,"week",true),prefix="Week ") />
 			<cfset stLocal.stResult["dotchart"]["xvalues"] = columntoarray(stLocal.qData,"dayofweek") />
-			<cfset stLocal.stResult["dotchart"]["yvalues"] = columntoarray(stLocal.qData,"week") />
+			<cfset stLocal.stResult["dotchart"]["yvalues"] = arrayrenumber(columntoarray(stLocal.qData,"week"),stLocal.qData.week[1],53) />
 			<cfset stLocal.stResult["dotchart"]["width"] = 300 /><!--- Override default chart height --->
 			<cfset stLocal.stResult["dotchart"]["height"] = 400 /><!--- Override default chart height --->
 			
-			<cfif url.periodoffset>
-				<cfset st.endDate = dateadd("d",-1,st.startDate) />
-				<cfset st.startDate = dateadd("d",-89,st.endDate) />
-				<cfset stLocal.qOffsetData = stLocal.o.getGAData(argumentCollection=st).results />
-			</cfif>
 		</cfcase>
 		
 		<cfcase value="year">
@@ -118,19 +143,24 @@
 			<cfset st.startDate = dateadd("d",-364,st.endDate) />
 			<cfset st.maxResults = datediff("d",st.startDate,st.endDate) + 1 />
 			
-			<cfset stLocal.qData = stLocal.o.getGAData(argumentCollection=st).results />
+			<cfset stLocal.qData = application.fc.lib.ga.getData(argumentCollection=st).results />
+			
+			<!--- Offset data --->
+			<cfset st.startDate = dateadd("d",-365 * url.periodOffset,st.startDate) />
+			<cfset st.endDate = dateadd("d",-365 * url.periodOffset,st.endDate) />
+			<cfset stLocal.qOffsetData = application.fc.lib.ga.getData(argumentCollection=st).results />
 			
 			<!--- Result metadata --->
 			<cfset stLocal.stResult["linechart"] = structnew() />
 			<cfset stLocal.stResult["linechart"]["xvalues"] = arrayrange(0,st.maxResults) />
+			<cfset stLocal.stResult["linechart"]["xlabels"] = [ [], [] ] />
+			<cfloop query="stLocal.qData">
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][1],dateformat(stLocal.qData["date"][stLocal.qData.currentrow],"d mmm")) />
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][2],dateformat(stLocal.qOffsetData["date"][stLocal.qData.currentrow],"d mmm")) />
+			</cfloop>
 			<cfset stLocal.stResult["dotchart"] = structnew() />
 			<cfset stLocal.stResult["dotchart"]["disabled"] = "There is no dot chart view for a year" />
 			
-			<cfif url.periodoffset>
-				<cfset st.endDate = dateadd("d",-1,st.startDate) />
-				<cfset st.startDate = dateadd("d",-364,st.endDate) />
-				<cfset stLocal.qOffsetData = stLocal.o.getGAData(argumentCollection=st).results />
-			</cfif>
 		</cfcase>
 	</cfswitch>
 	
@@ -171,7 +201,7 @@
 		<script type="text/javascript" src="/googleanalytics/js/g.line-min.js"></script>
 		<script type="text/javascript" src="/googleanalytics/js/g.dot-min.js"></script>
 		<script type="text/javascript" src="/googleanalytics/js/googleanalytics.js"></script>
-		<script type="text/javascript">GA.updateCharts("url","#application.url.webroot#/index.cfm?objectid=#stObj.objectid#&view=webtopOverviewTabGA&getdata=1");</script>
+		<script type="text/javascript">GA.updateCharts("url","#application.url.webroot#/index.cfm?objectid=#stObj.objectid#&view=webtopOverviewTabGA&getdata=1&ajaxmode=1");</script>
 	</cfoutput>
 	
 	<cfoutput>
@@ -219,20 +249,63 @@
 </cfif>
 
 
-<cffunction name="arrayrange" access="private" output="false" returntype="array" hint="Creates an array containing the specified range">
+<cffunction name="arraymap" access="private" output="false" returntype="array" hint="Maps values to strings in another array">
+	<cfargument name="source" type="array" required="true" />
+	<cfargument name="map" type="array" required="true" />
+	<cfargument name="indexoffset" type="numeric" required="false" default="1" />
+	
+	<cfset var a = duplicate(arguments.source) />
+	<cfset var i = 0 />
+	
+	<cfloop from="1" to="#arraylen(arguments.source)#" index="i">
+		<cfset a[i] = arguments.map[a[i]+arguments.indexoffset] />
+	</cfloop>
+	
+	<cfreturn a />
+</cffunction>
+
+<cffunction name="arrayrenumber" access="private" output="false" returntype="array" hint="Renumbers values in array so that the specified value becomes 1 and values after that are incremented by 1. Also accounts for values that wrap back around to 1.">
+	<cfargument name="source" type="array" required="true" />
 	<cfargument name="start" type="numeric" required="true" />
-	<cfargument name="end" type="numeric" required="true" />
-	<cfargument name="prefix" type="string" required="false" />
+	<cfargument name="wrap" type="numeric" required="true" />
 	
 	<cfset var a = arraynew(1) />
 	<cfset var i = 0 />
 	
-	<cfloop from="#arguments.start#" to="#arguments.end-1#" index="i">
-		<cfif structkeyexists(arguments,"prefix")>
-			<cfset arrayappend(a,arguments.prefix & i) />
+	<cfloop from="1" to="#arraylen(arguments.source)#" index="i">
+		<cfif arguments.source[i] lt arguments.start>
+			<cfset arrayappend(a,int(arguments.wrap - arguments.start + 1 + arguments.source[i])) />
 		<cfelse>
-			<cfset arrayappend(a,i) />
+			<cfset arrayappend(a,int(arguments.source[i] - arguments.start + 1)) />
 		</cfif>
+	</cfloop>
+	
+	<cfreturn a />
+</cffunction>
+
+<cffunction name="arrayprefix" access="private" output="false" returntype="array" hint="Prefixes every element of an array with a prefix">
+	<cfargument name="source" type="array" required="true" />
+	<cfargument name="prefix" type="string" required="true" />
+	
+	<cfset var a = duplicate(arguments.source) />
+	<cfset var i = 0 />
+	
+	<cfloop from="1" to="#arraylen(arguments.source)#" index="i">
+		<cfset a[i] = arguments.prefix & a[i] />
+	</cfloop>
+	
+	<cfreturn a />
+</cffunction>
+
+<cffunction name="arrayrange" access="private" output="false" returntype="array" hint="Creates an array containing the specified range">
+	<cfargument name="start" type="numeric" required="true" />
+	<cfargument name="end" type="numeric" required="true" />
+	
+	<cfset var a = arraynew(1) />
+	<cfset var i = arguments.start />
+	
+	<cfloop from="#arguments.start#" to="#arguments.end-1#" index="i">
+		<cfset arrayappend(a,i) />
 	</cfloop>
 	
 	<cfreturn a />
@@ -278,11 +351,16 @@
 <cffunction name="columntoarray" access="private" output="false" returntype="array" hint="Returns a column as an array">
 	<cfargument name="source" type="query" required="true" />
 	<cfargument name="column" type="string" required="true" />
+	<cfargument name="dedupe" type="boolean" required="false" default="false" />
 	
 	<cfset var aResult = arraynew(1) />
+	<cfset var prev = "" />
 	
 	<cfloop query="arguments.source">
-		<cfset arrayappend(aResult,arguments.source[arguments.column][arguments.source.currentrow]) />
+		<cfif not arguments.dedupe or arguments.source[arguments.column][arguments.source.currentrow] neq prev>
+			<cfset arrayappend(aResult,arguments.source[arguments.column][arguments.source.currentrow]) />
+		</cfif>
+		<cfset prev = arguments.source[arguments.column][arguments.source.currentrow] />
 	</cfloop>
 	
 	<cfreturn aResult />

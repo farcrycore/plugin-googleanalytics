@@ -10,25 +10,29 @@
 		<cfargument name="stSetting" type="struct" required="false" />
 		
 		<cfset var st = structnew() />
-		<cfset oGA = application.fapi.getContentType(typename="gaSetting") />
-		<cfset stData = structnew() />
-		<cfset stFU = structnew() />
-		<cfset stStat = structnew() />
-		<cfset qExists = "" />
+		<cfset var stData = structnew() />
+		<cfset var stFU = structnew() />
+		<cfset var stStat = structnew() />
+		<cfset var qExists = "" />
+		<cfset var accessToken = "" />
 		
 		<cfif not structkeyexists(arguments,"stSetting")>
 			<cfif structkeyexists(arguments,"gaSettingID")>
-				<cfset arguments.stSetting = oGA.getData(objectid=arguments.gaSettingID) />
+				<cfset arguments.stSetting = application.fapi.getContentObject(typename="gaSetting",objectid=arguments.gaSettingID) />
 			<cfelse>
-				<cfset arguments.stSetting = oGA.getSettings() />
+				<cfset arguments.stSetting = application.fapi.getContentType(typename="gaSetting").getSettings() />
 			</cfif>
 		</cfif>
 		
-		<cfset stData = oGA.getGADataAll(
+		<cfset accessToken = application.fc.lib.ga.getAccessToken(listrest(stSettings.googleRefreshToken,":"),stSettings.googleClientID,stSettings.googleClientSecret,stSettings.googleProxy) />
+		
+		<cfset stData = application.fc.lib.ga.getDataAll(
 			dimensions = "ga:pagepath",
 			metrics = "ga:pageviews",
 			startDate = dateadd("d",-arguments.stSetting.cacheDays,now()),
-			endDate = now()) />
+			endDate = now(),
+			accessToken = accessToken,
+			profileID = stSettings.googleProfileID) />
 		
 		
 		<cfquery datasource="#application.dsn#">
