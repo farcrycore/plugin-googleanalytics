@@ -62,8 +62,8 @@
 			<cfset stLocal.stResult["linechart"]["xvalues"] = arrayrange(0,st.maxResults) />
 			<cfset stLocal.stResult["linechart"]["xlabels"] = [ [], [] ] />
 			<cfloop query="stLocal.qData">
-				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][1],dateformat(stLocal.qData["date"][stLocal.qData.currentrow],"ddd") & " " & timeformat(stLocal.qData["date"][stLocal.qData.currentrow],"hhtt")) />
-				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][2],dateformat(stLocal.qOffsetData["date"][stLocal.qData.currentrow],"ddd") & " " & timeformat(stLocal.qOffsetData["date"][stLocal.qData.currentrow],"hhtt")) />
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][1],dateformat(stLocal.qData["date"][stLocal.qData.currentrow],"ddd") & " " & timeformat(stLocal.qData["date"][stLocal.qData.currentrow],"htt")) />
+				<cfset arrayappend(stLocal.stResult["linechart"]["xlabels"][2],dateformat(stLocal.qOffsetData["date"][stLocal.qData.currentrow],"ddd") & " " & timeformat(stLocal.qOffsetData["date"][stLocal.qData.currentrow],"htt")) />
 			</cfloop>
 			<cfset stLocal.stResult["dotchart"] = structnew() />
 			<cfset stLocal.stResult["dotchart"]["xlabels"] = ["12m", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12n", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"] />
