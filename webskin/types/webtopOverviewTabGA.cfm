@@ -225,7 +225,10 @@
 		<div id="charts"></div>
 		
 		<script type="text/html" id="linechart_template">
-			<br><p>blue: recent period<br>green: the period before that</p>
+			<br><p>
+				<span id="graph-colour-0">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> most recent period
+				&nbsp;&nbsp;&nbsp;
+				<span id="graph-colour-1">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> the period before that</p>
 			<table>
 				<tr>
 					<td><h2>Page Views</h2><div class="chart" data-metric="pageviews" style="width:#stLocal.lineChartWidth#px;height:#stLocal.lineChartHeight#px;"><img src="/googleanalytics/images/loading.gif" alt="loading..." style="margin-left:#(stLocal.lineChartWidth-32)/2#px;margin-top:#(stLocal.lineChartHeight-32)/2#px;"></div></td>

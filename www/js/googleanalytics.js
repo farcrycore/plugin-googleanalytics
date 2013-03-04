@@ -95,6 +95,11 @@ if (!window.GA) {
 		};
 		
 		GA.drawCharts = function(){
+			for (var i=0, ii=Raphael.g.colors.length, color=[]; i<ii; i++){
+				color = Raphael.g.colors[i].slice(5,-1).split(",").map(function(v){ return parseFloat(v || "0"); });
+				$j("#graph-colour-"+i.toString()).css("background-color",Raphael.hsb2rgb(color[0],color[1],color[2]).hex);
+			}
+			
 			$j(".chart").each(function(){
 				var self = $j(this).html(""), 
 					data = state.data.data[self.data("metric").toLowerCase()], 
