@@ -24,7 +24,7 @@
 			</cfif>
 		</cfif>
 		
-		<cfset accessToken = application.fc.lib.ga.getAccessToken(listrest(stSettings.googleRefreshToken,":"),stSettings.googleClientID,stSettings.googleClientSecret,stSettings.googleProxy) />
+		<cfset accessToken = application.fc.lib.ga.getAccessToken(listrest(arguments.stSetting.googleRefreshToken,":"),arguments.stSetting.googleClientID,arguments.stSetting.googleClientSecret,arguments.stSetting.googleProxy) />
 		
 		<cfset stData = application.fc.lib.ga.getDataAll(
 			dimensions = "ga:pagepath",
@@ -32,7 +32,7 @@
 			startDate = dateadd("d",-arguments.stSetting.cacheDays,now()),
 			endDate = now(),
 			accessToken = accessToken,
-			profileID = stSettings.googleProfileID) />
+			profileID = arguments.stSetting.googleProfileID) />
 		
 		
 		<cfquery datasource="#application.dsn#">
