@@ -3,6 +3,8 @@
 
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 
+<cfset stSettings = application.fc.lib.ga.getSettings() />
+
 <cfif isdefined("url.getdata")>
 	
 	<cfparam name="url.period" /><!--- week | month | quarter | year --->
@@ -10,8 +12,6 @@
 	
 	<cfset application.fc.lib.ga.initializeRequest() />
 	<cfset request.fc.ga.stObject = stObj />
-	
-	<cfset stSettings = application.fc.lib.ga.getSettings() />
 	
 	<cfset st = structnew() />
 	<cfset st.metrics='ga:pageviews,ga:uniquePageviews,ga:bounces,ga:entrances,ga:exits,ga:newVisits,ga:timeOnPage' />
@@ -26,7 +26,7 @@
 		<cfcase value="exact">
 			<cfset st.filters = 'ga:pagepath==' & stLocal.url & ",ga:pagepath==#application.url.webroot#/index.cfm?objectid=#stObj.objectid#" />
 			
-			<cfif right(stLocal.url,1) eq "/">
+			<cfif len(stLocal.url) gt 1 and right(stLocal.url,1) eq "/">
 				<cfset st.filters = "#st.filters#,ga:pagepath==#mid(stLocal.url,1,len(stLocal.url)-1)#" />
 			</cfif>
 			
@@ -36,7 +36,7 @@
 		</cfcase>
 		
 		<cfcase value="prefix">
-			<cfset st.filters = 'ga:pagepath=~' & replace(stLocal.url,".","\.","ALL") />
+			<cfset st.filters = 'ga:pagepath%3D~' & replace(stLocal.url,".","\.","ALL") />
 		</cfcase>
 	</cfswitch>
 	
@@ -179,6 +179,14 @@
 	</cfif>
 	
 	<cfcontent type="application/json" variable="#ToBinary( ToBase64( serializeJSON(stLocal.stResult) ) )#" reset="Yes">
+	
+<cfelseif structisempty(stSettings) or not len(stSettings.googleRefreshToken) or not len(stSettings.googleProfileID)>
+	
+	<cfoutput>
+		<ul id='errorMsg'>
+			<li>This domain does not have API access set up.</li>
+		</ul>
+	</cfoutput>
 	
 <cfelse>
 	

@@ -22,7 +22,7 @@ if (!window.GA) {
 				
 				data = newdata, offsetdata = newoffsetdata, xvalues = newxvalues, xlabels = newxlabels;
 			}
-			console.log("dataset",data.length,offsetdata.length,xvalues.length,xlabels[0].length,xlabels[1].length);
+			
 			if (randomize) {
 				for (var i = 0; i < data.length; i++) {
 					data[i] += Math.floor(Math.random() * randomize);
@@ -135,7 +135,7 @@ if (!window.GA) {
 				if (key === "url" || key === "period" || key === "path") {
 					$j.getJSON(state.url + "&period=" + state.period + "&path=" + state.path + "&periodoffset=1", function(data){
 						state.data = data;
-						console.log("ajax",data.data.bounces.length,data.offsetdata.bounces.length,data.linechart.xvalues.length);
+						
 						// convert various array-of-number-strings values to arrays-of-numbers values
 						for (var metric in state.data.data){
 							if (["timeonpage","week","quarter","bounces","entrances","uniquepageviews","newvisits","dayofweek","month","pageviews","exits"].indexOf(metric) > -1){
