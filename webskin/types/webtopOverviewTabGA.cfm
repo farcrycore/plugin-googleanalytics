@@ -336,29 +336,6 @@
 	<cfreturn a />
 </cffunction>
 
-<cffunction name="arraymid" access="private" output="false" returntype="array" hint="Standard slice functionality">
-	<cfargument name="source" type="array" required="true" />
-	<cfargument name="start" type="numeric" required="false" />
-	<cfargument name="end" type="numeric" required="false" />
-	
-	<cfset var a = arraynew(1) />
-	<cfset var i = 0 />
-	
-	<cfif arguments.start lt 0>
-		<cfset arguments.start = arraylen(arguments.source) + arguments.start />
-	</cfif>
-	
-	<cfif arguments.end lt 0>
-		<cfset arguments.end = arraylen(arguments.source) + arguments.end />
-	</cfif>
-	
-	<cfloop from="#arguments.start#" to="#min(arraylen(arguments.source),arguments.end)#" index="i">
-		<cfset arrayappend(a,arguments.source[i]) />
-	</cfloop>
-	
-	<cfreturn a />
-</cffunction>
-
 <cffunction name="columntoarray" access="private" output="false" returntype="array" hint="Returns a column as an array">
 	<cfargument name="source" type="query" required="true" />
 	<cfargument name="column" type="string" required="true" />
