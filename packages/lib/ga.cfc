@@ -293,12 +293,13 @@
 		</cfif>
 		
 		<cfset stResult = deserializeJSON(cfhttp.filecontent.toString()) />
-		<cfloop from="1" to="#arraylen(stResult.items)#" index="i">
-			<cfset queryaddrow(qAccounts) />
-			<cfset querysetcell(qAccounts,"id",stResult.items[i].id) />
-			<cfset querysetcell(qAccounts,"name",stResult.items[i].name) />
-		</cfloop>
-		
+		<cfif StructKeyExists(stResult, "items") >
+			<cfloop from="1" to="#arraylen(stResult.items)#" index="i">
+				<cfset queryaddrow(qAccounts) />
+				<cfset querysetcell(qAccounts,"id",stResult.items[i].id) />
+				<cfset querysetcell(qAccounts,"name",stResult.items[i].name) />
+			</cfloop>
+		</cfif>
 		<cfquery dbtype="query" name="qAccounts">
 			select * from qAccounts order by [name] asc
 		</cfquery>

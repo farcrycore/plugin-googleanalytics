@@ -68,12 +68,16 @@
 		</cftry>
 		
 		<cfsavecontent variable="html"><cfoutput>
-			<select name="#arguments.fieldname#" id="#arguments.fieldname#">
-				<option value="">-- select account --</option>
-				<cfloop query="qAccounts">
-					<option value="#qAccounts.id#"<cfif qAccounts.id eq arguments.stMetadata.value> selected</cfif>>#qAccounts.name#</option>
-				</cfloop>
-			</select>
+			<cfif qAccounts.RecordCount >
+				<select name="#arguments.fieldname#" id="#arguments.fieldname#">
+					<option value="">-- select account --</option>
+					<cfloop query="qAccounts">
+						<option value="#qAccounts.id#"<cfif qAccounts.id eq arguments.stMetadata.value> selected</cfif>>#qAccounts.name#</option>
+					</cfloop>
+				</select>
+			<cfelse>
+				<span>No authorized account found. Please check your Google API Account rights.</span>
+			</cfif>
 		</cfoutput></cfsavecontent>
 		
 		<cfreturn html />
