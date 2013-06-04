@@ -175,28 +175,22 @@
 		<cfargument name="proxy" type="string" required="true" />
 		
 		<cfset var stResult = structnew() />
+		<cfset var login = "" />
+		<cfset var address = "" />
 		
 		<cfif len(arguments.proxy)>
 			<cfif listlen(arguments.proxy,"@") eq 2>
-				<cfset stResult.login = listfirst(arguments.proxy,"@") />
-				<cfset stResult.user = listfirst(stResult.login,":") />
-				<cfset stResult.password = listlast(stResult.login,":") />
-			<cfelse>
-				<cfset stResult.user = "" />
-				<cfset stResult.password = "" />
+				<cfset login = listfirst(arguments.proxy,"@") />
+				<cfset stResult.proxyUser = listfirst(login,":") />
+				<cfset stResult.proxyPassword = listlast(login,":") />
 			</cfif>
-			<cfset stResult.server = listlast(arguments.proxy,"@") />
-			<cfset stResult.domain = listfirst(stResult.server,":") />
+			<cfset address = listlast(arguments.proxy,"@") />
+			<cfset stResult.proxyServer = listfirst(address,":") />
 			<cfif listlen(stResult.server,":") eq 2>
-				<cfset stResult.port = listlast(stResult.server,":") />
+				<cfset stResult.proxyPort = listlast(address,":") />
 			<cfelse>
-				<cfset stResult.port = "80" />
+				<cfset stResult.proxyPort = "80" />
 			</cfif>
-		<cfelse>
-			<cfset stResult.user = "" />
-			<cfset stResult.password = "" />
-			<cfset stResult.domain = "" />
-			<cfset stREsult.port = "80" />
 		</cfif>
 		
 		<cfreturn stResult />
@@ -220,9 +214,12 @@
 		
 		<cfset var cfhttp = structnew() />
 		<cfset var stResult = structnew() />
-		<cfset var stProxy = parseProxy(arguments.proxy) />
+		<cfset var stAttr = parseProxy(arguments.proxy) />
 		
-		<cfhttp url="https://accounts.google.com/o/oauth2/token" method="POST" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+		<cfset stAttr.url = "https://accounts.google.com/o/oauth2/token" />
+		<cfset stAttr.method = "POST" />
+		
+		<cfhttp attributeCollection="#stAttr#">
 			<cfhttpparam type="formfield" name="code" value="#arguments.authorizationCode#" />
 			<cfhttpparam type="formfield" name="client_id" value="#arguments.clientID#" />
 			<cfhttpparam type="formfield" name="client_secret" value="#arguments.clientSecret#" />
@@ -251,10 +248,15 @@
 		
 		<cfset var cfhttp = structnew() />
 		<cfset var stResult = structnew() />
-		<cfset var stProxy = parseProxy(arguments.proxy) />
+		<cfset var stAttr = "" />
 		
 		<cfif not isdefined("this.access_token") or not isdefined("this.access_token_expires") or datecompare(this.access_token_expires,now()) lt 0 or arguments.force>
-			<cfhttp url="https://accounts.google.com/o/oauth2/token" method="POST" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+			<cfset stAttr = parseProxy(arguments.proxy) />
+			
+			<cfset stAttr.url = "https://accounts.google.com/o/oauth2/token" />
+			<cfset stAttr.method = "POST" />
+			
+			<cfhttp attributeCollection="#stAttr#">
 				<cfhttpparam type="formfield" name="refresh_token" value="#arguments.refreshToken#" />
 				<cfhttpparam type="formfield" name="client_id" value="#arguments.clientID#" />
 				<cfhttpparam type="formfield" name="client_secret" value="#arguments.clientSecret#" />
@@ -282,9 +284,12 @@
 		<cfset var stResult = structnew() />
 		<cfset var qAccounts = querynew("id,name") />
 		<cfset var i = 0 />
-		<cfset var stProxy = parseProxy(arguments.proxy) />
+		<cfset var stAttr = parseProxy(arguments.proxy) />
 		
-		<cfhttp url="https://www.googleapis.com/analytics/v3/management/accounts" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+		<cfset stAttr.url = "https://www.googleapis.com/analytics/v3/management/accounts" />
+		<cfset stAttr.method = "GET" />
+		
+		<cfhttp attributeCollection="#stAttr#">
 			<cfhttpparam type="header" name="Authorization" value="Bearer #arguments.accessToken#" />
 		</cfhttp>
 		
@@ -316,9 +321,12 @@
 		<cfset var stResult = structnew() />
 		<cfset var qWebProperties = querynew("id,name") />
 		<cfset var i = 0 />
-		<cfset var stProxy = parseProxy(arguments.proxy) />
+		<cfset var stAttr = parseProxy(arguments.proxy) />
 		
-		<cfhttp url="https://www.googleapis.com/analytics/v3/management/accounts/#arguments.accountID#/webproperties" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+		<cfset stAttr.url = "https://www.googleapis.com/analytics/v3/management/accounts/#arguments.accountID#/webproperties" />
+		<cfset stAttr.method = "GET" />
+		
+		<cfhttp attributeCollection="#stAttr#">
 			<cfhttpparam type="header" name="Authorization" value="Bearer #arguments.accessToken#" />
 		</cfhttp>
 		
@@ -350,9 +358,12 @@
 		<cfset var stResult = structnew() />
 		<cfset var qProfiles = querynew("id,name") />
 		<cfset var i = 0 />
-		<cfset var stProxy = parseProxy(arguments.proxy) />
+		<cfset var stAttr = parseProxy(arguments.proxy) />
 		
-		<cfhttp url="https://www.googleapis.com/analytics/v3/management/accounts/#arguments.accountID#/webproperties/#arguments.webPropertyID#/profiles" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+		<cfset stAttr.url = "https://www.googleapis.com/analytics/v3/management/accounts/#arguments.accountID#/webproperties/#arguments.webPropertyID#/profiles" />
+		<cfset stAttr.method = "GET" />
+		
+		<cfhttp attributeCollection="#stAttr#">
 			<cfhttpparam type="header" name="Authorization" value="Bearer #arguments.accessToken#" />
 		</cfhttp>
 		
@@ -424,7 +435,7 @@
 		<cfset var gaurl = "" />
 		<cfset var i = 0 />
 		<cfset var stReturn = structnew() />
-		<cfset var stProxy = parseProxy(arguments.proxy) />
+		<cfset var stAttr = "" />
 		
 		<cfset stReturn.results = querynew("empty") />
 		<cfset stReturn.args = duplicate(arguments) />
@@ -446,7 +457,12 @@
 			
 			<cfparam name="arguments.dimensions" default="" />
 			
-			<cfhttp url="#gaurl#" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+			<cfset stAttr = parseProxy(arguments.proxy) />
+			
+			<cfset stAttr.url = gaurl />
+			<cfset stAttr.method = "GET" />
+			
+			<cfhttp attributeCollection="#stAttr#">
 				<cfhttpparam type="header" name="Authorization" value="Bearer #arguments.accessToken#" />
 			</cfhttp>
 			
