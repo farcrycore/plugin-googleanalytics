@@ -52,7 +52,7 @@
 				}
 				
 				// check for download classes
-				for (var i=0;i<opts.downloadClasses;i++){
+				for (var i=0;i<opts.downloadClasses.length;i++){
 					if(jQThis.hasClass(opts.downloadClasses[i])){
 						var title = jQThis.attr("title") || el.innerHTML;
 						return opts.download + title.replace(/<[^>]+>/g,'-').replace(/[^\w]+/g,'-');
