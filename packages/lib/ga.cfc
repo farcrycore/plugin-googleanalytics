@@ -102,6 +102,8 @@
 	</cffunction>
 	
 	<cffunction name="getTrackableURL" access="public" output="false" returntype="string" hint="If no URL has been specifically set, attempts to generate an appropriate URL for the current object or type webskin">
+		<cfargument name="objectid" type="uuid" required="false" />
+		
 		<cfset var trackableURL = "" />
 		<cfset var stNav = structnew() />
 		<cfset var stSettings = getSettings() />
@@ -113,7 +115,17 @@
 			<cfset request.fc.ga.stObject = request.stObj />
 		</cfif>
 		
-		<cfif structkeyexists(request.fc.ga,"url")>
+		<cfif structkeyexists(arguments,"objectid")>
+			<!--- look up the object's parent navigaion node --->
+			<nj:getNavigation objectId="#arguments.objectId#" r_stobject="stNav" />
+			
+			<!--- if the object is in the tree this will give us the node --->
+			<cfif isStruct(stNav) and structKeyExists(stNav, "objectid") AND len(stNav.objectid)>
+				<cfset trackableURL = application.fapi.getLink(objectid=stNav.objectID) />
+			<cfelse>
+				<cfset trackableURL = application.fapi.getLink(objectid=arguments.objectid) />
+			</cfif>
+		<cfelseif structkeyexists(request.fc.ga,"url")>
 			<cfset trackableURL = request.fc.ga.url />
 		<cfelseif not structkeyexists(request.fc.ga,"stObject")>
 			<cfset trackableURL = application.fapi.fixURL() />
@@ -155,7 +167,7 @@
 			</cfif>
 		</cfif>
 		
-		<cfif structkeyexists(stSettings,"urlWhiteList")>
+		<cfif structkeyexists(stSettings,"urlWhiteList") and not structkeyexists(arguments,"objectid")>
 			<cfloop list="#stSettings.urlWhiteList#" index="urlVar">
 				<cfif structkeyexists(url,urlVar) and not refindnocase("[&?]#urlVar#=",trackableURL)>
 					<cfif find("?",trackableURL)>
