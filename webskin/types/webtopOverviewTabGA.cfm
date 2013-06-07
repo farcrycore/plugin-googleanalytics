@@ -24,7 +24,7 @@
 	
 	<cfswitch expression="#url.path#">
 		<cfcase value="exact">
-			<cfset st.filters = 'ga:pagepath==' & stLocal.url & ",ga:pagepath==#application.url.webroot#/index.cfm?objectid=#stObj.objectid#" />
+			<cfset st.filters = 'ga:pagepath==' & stLocal.url & ",ga:pagepath=@objectid=#stObj.objectid#" />
 			
 			<cfif len(stLocal.url) gt 1 and right(stLocal.url,1) eq "/">
 				<cfset st.filters = "#st.filters#,ga:pagepath==#mid(stLocal.url,1,len(stLocal.url)-1)#" />
