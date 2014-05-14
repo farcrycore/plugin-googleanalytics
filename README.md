@@ -1,10 +1,16 @@
 # Google Analytics Plugin
 
-> Certified for versions of 6.0.15+
+A must have plugin providing close integration for FarCry projects with the Google Analytics service v3.0 API
 
-Provides close integration for FarCry projects with the Google Analytics service v3.0 API
+> Certified for versions of FarCry 6.0.15+
 
-Features include:
+Front End Features include:
+
+- management of urchin tracking integration for your site
+- automatic tracking for external links
+- automatic tracking for file downloads through `download.cfm`
+
+Back end features (requires Google API authentication):
 
 - webtop overview integration
 - stats for individual pages or content items
@@ -13,7 +19,6 @@ Features include:
 - support for downloads and external link reporting
 - a framework for tracking Google custom variables
 - popular content publishing rule
-
 
 ## Screenshots
 
