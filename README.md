@@ -37,13 +37,24 @@ Copy the "www" folder to a "googleanalytics" folder under your project's webroot
 Add googleAnalytics to the plugin list within `./mywebapp/www/farcryConstructor.cfm`
 
 ```
-<!---// set plugin list--->
 <cfset THIS.plugins = "farcrycms,googleMaps,googleAnalytics,farcrydoc" />
 ```
 
-Deploy the plugin's content types: go into the webtop ADMIN > DEVELOPER TOOLS and deploy all the plugin content types, and restart the application (eg. from the URL ?updateapp=projectkey or the webtop).
+Deploy the plugin's content types: 
+
+- go into the webtop **ADMIN > DEVELOPER TOOLS >COAPI** and deploy all the plugin content types, and; 
+- restart the application (eg. from the URL ?updateapp=projectkey or the webtop)
+
+### Settings
+
+Settings are configured under **CONTENT > Google Analytics**.  All you need to add is your Google Analytics Urchin code.  The rest of the settings are optional.
+
+![GA Settings](install/ga-settings.png)
+
 
 ### Set Up Google API Profile (optional)
+
+If you want to show statistics directly within the webtop, you will need to set up access for the webapp to access your web stats through the Google API.
 
 Set up a project in your Google API console
 
@@ -53,6 +64,8 @@ Set up a project in your Google API console
 - Copy in the clientID and secret
 - Authorise FarCry to access the your analytics data (there should be a link next to Refresh Token)
 - Select your Account, Property, and Profile.
+
+![GA API Access](install/ga-api-access.png)
 
 ## What else?
 That's literally it. If GA Plugin detects that you are serving a page from one of the configured domains, it will automatically include the correct urchin code for your domain in the HEAD of your document.

@@ -1,4 +1,4 @@
-<!--- @@Copyright: Daemon Pty Limited 2002-2008, http://www.daemon.com.au --->
+<!--- @@Copyright: Daemon Pty Limited 2002-2014, http://www.daemon.com.au --->
 <!--- @@License:
     This file is part of FarCry CMS Plugin.
 
@@ -17,17 +17,13 @@
 --->
 <cfcomponent extends="farcry.core.webtop.install.manifest" name="manifest">
 
-	<!--- IMPORT TAG LIBRARIES --->
-	<cfimport taglib="/farcry/core/packages/fourq/tags/" prefix="q4">
-	
-	
 	<cfset this.name = "Google Analytics" />
 	<cfset this.description = "<strong>Google Analytics</strong> plugin makes it very easy to add basic request tracking, as well as tracking of downloads and outbound links." />
 	<cfset this.lRequiredPlugins = "" />
 	<cfset this.taglibraryprefix = "ga" />
 	<cfset addSupportedCore(majorVersion="5") />
 	<cfset addSupportedCore(majorVersion="6") />
-	
+	<cfset addSupportedCore(majorVersion="7") />
 
 </cfcomponent>
 
