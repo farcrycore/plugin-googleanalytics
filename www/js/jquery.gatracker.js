@@ -114,8 +114,8 @@
 				params = jQuery.extend(defaultParams, params);
 				
 				// setup tracking
-				$j("a").track(); // track external links, files, email addresses
-				$j("form").track({ event:"submit" }); // track external links
+				$("a").track(); // track external links, files, email addresses
+				$("form").track({ event:"submit" }); // track external links
 			});
 		};
 	})();
