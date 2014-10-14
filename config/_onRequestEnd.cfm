@@ -25,7 +25,7 @@
 			
 			(function() {
 				var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-				<cfif structKeyExists(stSetting, "bDemographics") AND stSetting.bDemographics)>
+				<cfif structKeyExists(stSetting, "bDemographics") AND stSetting.bDemographics>
 					ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
 				<cfelse>
 					ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
