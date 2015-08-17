@@ -152,9 +152,11 @@
 				<cfelse>
 					<cfset trackableURL = application.fapi.getLink(objectid=request.fc.ga.stObject.objectid) />
 				</cfif>
-			<cfelse>
-				<cfset trackableURL = application.fapi.getLink(objectid=request.fc.ga.stObject.objectid) />
-			</cfif>
+            <cfelseif isValid("uuid", request.fc.ga.stObject.objectid)>
+                <cfset trackableURL = application.fapi.getLink(objectid=request.fc.ga.stObject.objectid) />
+            <cfelse>
+                <cfset trackableURL = application.fapi.fixURL() />
+            </cfif>
 			
 			<cfif find("/index.cfm?",trackableURL)>
 				<cfset trackableURL = "/#application.stCOAPI[request.fc.ga.stObject.typename].fuAlias#/#rereplace(rereplace(request.fc.ga.stObject.label,'\s+','-','ALL'),'[^\w\-]','','ALL')#" />
