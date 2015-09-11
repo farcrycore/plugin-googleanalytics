@@ -16,7 +16,7 @@
 	<cfset st = structnew() />
 	<cfset st.metrics='ga:pageviews,ga:uniquePageviews,ga:bounces,ga:entrances,ga:exits,ga:newVisits,ga:timeOnPage' />
 	<cfset st.startIndex=1 />
-	<cfset st.accessToken = application.fc.lib.ga.getAccessToken(listrest(stSettings.googleRefreshToken,":"),stSettings.googleClientID,stSettings.googleClientSecret,stSettings.googleProxy) />
+	<cfset st.accessConfig = stSettings.accessConfig />
 	<cfset st.profileID = stSettings.googleProfileID />
 	
 	<cfset stLocal.stResult = structnew() />
@@ -180,7 +180,7 @@
 	
 	<cfcontent type="application/json" variable="#ToBinary( ToBase64( serializeJSON(stLocal.stResult) ) )#" reset="Yes">
 	
-<cfelseif structisempty(stSettings) or not len(stSettings.googleRefreshToken) or not len(stSettings.googleProfileID)>
+<cfelseif structisempty(stSettings) or not len(stSettings.accessConfig.clientID) or not len(stSettings.googleProfileID)>
 	
 	<cfoutput>
 		<ul id='errorMsg'>

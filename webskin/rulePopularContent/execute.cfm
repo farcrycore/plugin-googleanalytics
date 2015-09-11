@@ -1,6 +1,6 @@
 <cfsetting enablecfoutputonly="true" />
 <!--- @@cacheStatus: 1 --->
-<!--- @@cacheTypeWatch: gaStatistic --->
+<!--- @@cacheTimeout: 90 --->
 
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 
