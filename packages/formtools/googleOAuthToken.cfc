@@ -46,10 +46,10 @@
 				<span id='#arguments.fieldname#-text'>Enter a Client ID and Client Secret</span>
 			<cfelseif accessConfig.clientID neq keyClientID>
 				<input type='hidden' name='#arguments.fieldname#' id='#arguments.fieldname#' value='' />
-				<span id='#arguments.fieldname#-text'>The application Client ID has changed. You will need to <a href='#redirectURL#&state=#urlencodedformat("#accessConfig.clientid#|#accessConfig.clientsecret#|#accessConfig.proxy#")#' target='_blank'>re-authorize the application</a>.</span>
+				<span id='#arguments.fieldname#-text'>The application Client ID has changed. [<a href='#redirectURL#&state=#urlencodedformat("#accessConfig.clientid#|#accessConfig.clientsecret#|#accessConfig.proxy#")#' target='_blank'>re-authorize the application</a> | <a href="##" onclick="updateRefreshToken('', ''); return false;">clear</a>]</span>
 			<cfelseif len(arguments.stMetadata.value)>
 				<input type='hidden' name='#arguments.fieldname#' id='#arguments.fieldname#' value='#arguments.stMetadata.value#' />
-				<span id='#arguments.fieldname#-text'>You have provided authorization. You can <a href='#redirectURL#&state=#urlencodedformat("#accessConfig.clientid#|#accessConfig.clientsecret#|#accessConfig.proxy#")#' target='_blank'>re-authorize</a> as another user if necessary.</span>
+				<span id='#arguments.fieldname#-text'>You have provided authorization. [<a href='#redirectURL#&state=#urlencodedformat("#accessConfig.clientid#|#accessConfig.clientsecret#|#accessConfig.proxy#")#' target='_blank'>re-authorize</a> | <a href="##" onclick="updateRefreshToken('', ''); return false;">clear</a>]</span>
 			<cfelse>
 				<input type='hidden' name='#arguments.fieldname#' id='#arguments.fieldname#' value='#arguments.stMetadata.value#' />
 				<span id='#arguments.fieldname#-text'>Please <a href='#redirectURL#&state=#urlencodedformat("#accessConfig.clientid#|#accessConfig.clientsecret#|#accessConfig.proxy#")#' target='_blank'>authorize</a> this application to access Google on your user's behalf.</span>
@@ -58,8 +58,14 @@
 			<div id='#arguments.fieldname#-sanitycheck'>#sanity#</div>
 			<script type='text/javascript'>
 				window.updateRefreshToken = function(key, sanitycheck){ 
-					$j('###arguments.fieldname#').val('#accessConfig.clientID#:'+key);
-					$j('###arguments.fieldname#-text').html('Authorization complete [<a href="#redirectURL#&state=#urlencodedformat("#accessConfig.clientid#|#accessConfig.clientsecret#|#accessConfig.proxy#")#" target="_blank">re-authorize</a>]'); 
+					if (key.length){
+						$j('###arguments.fieldname#').val('#accessConfig.clientID#:'+key);
+						$j('###arguments.fieldname#-text').html('Authorization complete [<a href="#redirectURL#&state=#urlencodedformat("#accessConfig.clientid#|#accessConfig.clientsecret#|#accessConfig.proxy#")#" target="_blank">re-authorize</a> | <a href="##" onclick="updateRefreshToken(\'\', \'\'); return false;">clear</a>]'); 
+					}
+					else {
+						$j('###arguments.fieldname#').val('');
+						$j('###arguments.fieldname#-text').html("Please <a href='#redirectURL#&state=#urlencodedformat('#accessConfig.clientid#|#accessConfig.clientsecret#|#accessConfig.proxy#')#' target='_blank'>authorize</a> this application to access Google on your user's behalf."); 
+					}
 					$j('###arguments.fieldname#-sanitycheck').html(sanitycheck); 
 				};
 			</script>
