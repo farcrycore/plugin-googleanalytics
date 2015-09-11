@@ -1,83 +1,83 @@
-component {
+<cfcomponent>
 	
-	public any function init(){
-		this.access_tokens = {};
+	<cffunction name="init" access="public" output="false" returntype="any">
+		
+		<cfset this.access_tokens = {} />
 
-		return this;
-	}
+		<cfreturn this />
+	</cffunction>
 
-	public struct function getAccessConfig(required struct stObject, required struct stMetadata){
-		var accessConfig = {};
+	<cffunction name="getAccessConfig" access="public" output="false" returntype="struct">
+		<cfargument name="stObject" type="struct" required="true" />
+		<cfargument name="stMetadata" type="struct" required="true" />
 
-		// client id
-		if (refindnocase("^config\.", arguments.stMetadata.ftClientID)){
-			accessConfig["clientID"] = application.fapi.getConfig(listGetAt(arguments.stMetadata.ftClientID, 2, "."), listGetAt(arguments.stMetadata.ftClientID, 3, "."))
-		}
-		else {
-			accessConfig["clientID"] = arguments.stObject[arguments.stMetadata.ftClientID];
-		}
+		<cfset accessConfig = {} />
 
-		// client secret
-		if (refindnocase("^config\.", arguments.stMetadata.ftClientSecret)){
-			accessConfig["clientSecret"] = application.fapi.getConfig(listGetAt(arguments.stMetadata.ftClientSecret, 2, "."), listGetAt(arguments.stMetadata.ftClientSecret, 3, "."))
-		}
-		else {
-			accessConfig["clientSecret"] = arguments.stObject[arguments.stMetadata.ftClientSecret];
-		}
+		<!--- client id --->
+		<cfif refindnocase("^config\.", arguments.stMetadata.ftClientID)>
+			<cfset accessConfig["clientID"] = application.fapi.getConfig(listGetAt(arguments.stMetadata.ftClientID, 2, "."), listGetAt(arguments.stMetadata.ftClientID, 3, ".")) />
+		<cfelse>
+			<cfset accessConfig["clientID"] = arguments.stObject[arguments.stMetadata.ftClientID] />
+		</cfif>
 
-		// proxy
-		if (len(arguments.stMetadata.ftProxy)){
-			if (refindnocase("^config\.", arguments.stMetadata.ftProxy)){
-				accessConfig["proxy"] = application.fapi.getConfig(listGetAt(arguments.stMetadata.ftProxy, 2, "."), listGetAt(arguments.stMetadata.ftProxy, 3, "."))
-			}
-			else {
-				accessConfig["proxy"] = arguments.stObject[arguments.stMetadata.ftProxy];
-			}
-		}
-		else {
-			accessConfig["proxy"] = "";
-		}
+		<!--- client secret --->
+		<cfif refindnocase("^config\.", arguments.stMetadata.ftClientSecret)>
+			<cfset accessConfig["clientSecret"] = application.fapi.getConfig(listGetAt(arguments.stMetadata.ftClientSecret, 2, "."), listGetAt(arguments.stMetadata.ftClientSecret, 3, ".")) />
+		<cfelse>
+			<cfset accessConfig["clientSecret"] = arguments.stObject[arguments.stMetadata.ftClientSecret] />
+		</cfif>
 
-		// refresh token
-		accessConfig["refreshToken"] = listrest(arguments.stObject[arguments.stMetadata.name], ":");
+		<!--- proxy --->
+		<cfif len(arguments.stMetadata.ftProxy)>
+			<cfif refindnocase("^config\.", arguments.stMetadata.ftProxy)>
+				<cfset accessConfig["proxy"] = application.fapi.getConfig(listGetAt(arguments.stMetadata.ftProxy, 2, "."), listGetAt(arguments.stMetadata.ftProxy, 3, ".")) />
+			<cfelse>
+				<cfset accessConfig["proxy"] = arguments.stObject[arguments.stMetadata.ftProxy] />
+			</cfif>
+		<cfelse>
+			<cfset accessConfig["proxy"] = "" />
+		</cfif>
 
-		return accessConfig;
-	}
+		<!--- refresh token --->
+		<cfset accessConfig["refreshToken"] = listrest(arguments.stObject[arguments.stMetadata.name], ":") />
 
-	public struct function parseProxy(required string proxy){
-		var stResult = {
+		<cfreturn accessConfig />
+	</cffunction>
+
+	<cffunction name="parseProxy" access="public" output="false" returntype="struct">
+		<cfargument name="proxy" type="string" required="true" />
+
+		<cfset stResult = {
 			"user" = "",
 			"password" = "",
 			"domain" = "",
 			"port" = "80"
-		};
+		} />
 		
-		if (len(arguments.proxy)){
-			if (listlen(arguments.proxy,"@") eq 2){
-				stResult["login"] = listfirst(arguments.proxy,"@");
-				stResult["user"] = listfirst(stResult.login,":");
-				stResult["password"] = listlast(stResult.login,":");
-			}
-			else {
-				stResult["user"] = "";
-				stResult["password"] = "";
-			}
+		<cfif len(arguments.proxy)>
+			<cfif listlen(arguments.proxy,"@") eq 2>
+				<cfset stResult["login"] = listfirst(arguments.proxy,"@") />
+				<cfset stResult["user"] = listfirst(stResult.login,":") />
+				<cfset stResult["password"] = listlast(stResult.login,":") />
+			<cfelse>
+				<cfset stResult["user"] = "" />
+				<cfset stResult["password"] = "" />
+			</cfif>
 
-			stResult["server"] = listlast(arguments.proxy,"@");
-			stResult["domain"] = listfirst(stResult.server,":");
+			<cfset stResult["server"] = listlast(arguments.proxy,"@") />
+			<cfset stResult["domain"] = listfirst(stResult.server,":") />
 
-			if (listlen(stResult["server"],":") eq 2){
-				stResult["port"] = listlast(stResult.server,":");
-			}
-			else {
-				stResult["port"] = "80";
-			}
-		}
+			<cfif listlen(stResult["server"],":") eq 2>
+				<cfset stResult["port"] = listlast(stResult.server,":") />
+			<cfelse>
+				<cfset stResult["port"] = "80" />
+			</cfif>
+		</cfif>
 		
-		return stResult;
-	}
+		<cfreturn stResult />
+	</cffunction>
 
-	/*
+	<!---
 		From http://code.google.com/apis/analytics/docs/gdata/v3/gdataAuthorization.html: 
 	    1) When you create your application, you register it with Google. Google then provides information you'll need later, such as a client ID and a client secret.
 	    2) Activate the Google Analytics API in the Services pane of the Google APIs Console. (If it isn't listed in the Console, then skip this step.)
@@ -86,355 +86,374 @@ component {
 	    5) If the user approves, then Google gives your application a short-lived access token.
 	    6) Your application requests user data, attaching the access token to the request.
 	    7) If Google determines that your request and the token are valid, it returns the requested data.
-	 */
-	public string function getAuthorisationURL(required string clientID, required string redirectURL, string accessType="offline", string scope="https://www.googleapis.com/auth/userinfo.profile", string state=""){
-		var authURL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=#arguments.clientid#&redirect_uri=#urlencodedformat(arguments.redirectURL)#&scope=#arguments.scope#&access_type=#arguments.accesstype#&state=#urlencodedformat(arguments.state)#&approval_prompt=force";
+	--->
+	<cffunction name="getAuthorisationURL" access="public" output="false" returntype="string">
+		<cfargument name="clientID" type="string" required="true" />
+		<cfargument name="redirectURL" type="string" required="true" />
+		<cfargument name="accessType" type="string" default="offline" />
+		<cfargument name="scope" type="string" default="https://www.googleapis.com/auth/userinfo.profile" />
+		<cfargument name="state" type="string" default="" />
 
-		return authURL;
-	}
+		<cfset authURL = "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=#arguments.clientid#&redirect_uri=#urlencodedformat(arguments.redirectURL)#&scope=#arguments.scope#&access_type=#arguments.accesstype#&state=#urlencodedformat(arguments.state)#&approval_prompt=force" />
+
+		<cfreturn authURL />
+	</cffunction>
 	
-	public string function getRefreshToken(required string authorizationCode, required string clientID, required string clientSecret, required string redirectURL, required string proxy){
-		var cfhttp = {};
-		var stResult = {};
-		var stProxy = parseProxy(arguments.proxy);
-		var stDetail = "";
+	<cffunction name="getRefreshToken" access="public" output="false" returntype="string">
+		<cfargument name="authorizationCode" type="string" required="true" />
+		<cfargument name="clientID" type="string" required="true" />
+		<cfargument name="clientSecret" type="string" required="true" />
+		<cfargument name="redirectURL" type="string" required="true" />
+		<cfargument name="proxy" type="string" required="true" />
+
+		<cfset cfhttp = {} />
+		<cfset stResult = {} />
+		<cfset stProxy = parseProxy(arguments.proxy) />
+		<cfset stDetail = "" />
 		
-		http url="https://accounts.google.com/o/oauth2/token" method="POST" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#"{
-			httpparam type="formfield" name="code" value="#arguments.authorizationCode#";
-			httpparam type="formfield" name="client_id" value="#arguments.clientID#";
-			httpparam type="formfield" name="client_secret" value="#arguments.clientSecret#";
-			httpparam type="formfield" name="redirect_uri" value="#arguments.redirectURL#";
-			httpparam type="formfield" name="grant_type" value="authorization_code";
-		}
+		<cfhttp url="https://accounts.google.com/o/oauth2/token" method="POST" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+			<cfhttpparam type="formfield" name="code" value="#arguments.authorizationCode#" />
+			<cfhttpparam type="formfield" name="client_id" value="#arguments.clientID#" />
+			<cfhttpparam type="formfield" name="client_secret" value="#arguments.clientSecret#" />
+			<cfhttpparam type="formfield" name="redirect_uri" value="#arguments.redirectURL#" />
+			<cfhttpparam type="formfield" name="grant_type" value="authorization_code" />	
+		</cfhttp>
 		
-		if (not cfhttp.statuscode eq "200 OK"){
-			if (listfindnocase("vagrant,dev,uat", application.stack)){
+		<cfif not cfhttp.statuscode eq "200 OK">
+			<cfif listfindnocase("vagrant,dev,uat", application.stack)>
 				stDetail = serializeJSON({ "arguments" : duplicate(arguments) });
-			}
-			throw(message="Error retrieving refresh token: #cfhttp.statuscode# (#cfhttp.filecontent#)", detail=stDetail);
-		}
+			</cfif>
+			<cfthrow message="Error retrieving refresh token: #cfhttp.statuscode# (#cfhttp.filecontent#)" detail="#stDetail#" />
+		</cfif>
 		
-		stResult = deserializeJSON(cfhttp.FileContent.toString());
+		<cfset stResult = deserializeJSON(cfhttp.FileContent.toString()) />
 		
-		this.access_token = stResult.access_token;
-		this.access_token_expires = dateadd("s",stResult.expires_in,now());
+		<cfset this.access_token = stResult.access_token />
+		<cfset this.access_token_expires = dateadd("s",stResult.expires_in,now()) />
 		
-		return stResult.refresh_token;
-	}
+		<cfreturn stResult.refresh_token />
+	</cffunction>
 	
-	public string function getAccessToken(required string refreshToken, required string clientID, required string clientSecret, required string proxy){
-		var cfhttp = {};
-		var stResult = {};
-		var stProxy = parseProxy(arguments.proxy);
+	<cffunction name="getAccessToken" access="public" output="false" returntype="string">
+		<cfargument name="refreshToken" type="string" required="true" />
+		<cfargument name="clientID" type="string" required="true" />
+		<cfargument name="clientSecret" type="string" required="true" />
+		<cfargument name="proxy" type="string" required="true" />
+
+		<cfset cfhttp = {} />
+		<cfset stResult = {} />
+		<cfset stProxy = parseProxy(arguments.proxy) />
 		
-		if (not structkeyexists(this.access_tokens, arguments.refreshToken) or datecompare(this.access_tokens[arguments.refreshToken].expires,now()) lt 0){
-			http url="https://accounts.google.com/o/oauth2/token" method="POST" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#"{
-				httpparam type="formfield" name="refresh_token" value="#arguments.refreshToken#";
-				httpparam type="formfield" name="client_id" value="#arguments.clientID#";
-				httpparam type="formfield" name="client_secret" value="#arguments.clientSecret#";
-				httpparam type="formfield" name="grant_type" value="refresh_token";
-			}
+		<cfif not structkeyexists(this.access_tokens, arguments.refreshToken) or datecompare(this.access_tokens[arguments.refreshToken].expires,now()) lt 0>
+			<cfhttp url="https://accounts.google.com/o/oauth2/token" method="POST" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+				<cfhttpparam type="formfield" name="refresh_token" value="#arguments.refreshToken#" />
+				<cfhttpparam type="formfield" name="client_id" value="#arguments.clientID#" />
+				<cfhttpparam type="formfield" name="client_secret" value="#arguments.clientSecret#" />
+				<cfhttpparam type="formfield" name="grant_type" value="refresh_token" />
+			</cfhttp>
 			
-			if (not cfhttp.statuscode eq "200 OK"){
-				throw(message="Error accessing Google API: #cfhttp.statuscode#");
-			}
+			<cfif not cfhttp.statuscode eq "200 OK">
+				<cfthrow message="Error accessing Google API: #cfhttp.statuscode#" />
+			</cfif>
 			
-			stResult = deserializeJSON(cfhttp.FileContent.toString());
+			<cfset stResult = deserializeJSON(cfhttp.FileContent.toString()) />
 			
-			this.access_tokens[arguments.refreshToken] = {
+			<cfset this.access_tokens[arguments.refreshToken] = {
 				"token" = stResult.access_token,
 				"expires" = dateadd("s",stResult.expires_in,now())
-			};
-		}
+			} />
+		</cfif>
 		
-		return this.access_tokens[arguments.refreshToken].token;
-	}
+		<cfreturn this.access_tokens[arguments.refreshToken].token />
+	</cffunction>
 
-	public any function makeRequest(required struct accessConfig, required string resource, string method="", struct stQuery={}, struct stData={}, string format="json"){
-		var stProxy = parseProxy(arguments.accessConfig.proxy);
-		var accessToken = getAccessToken(argumentCollection=arguments.accessConfig);
-		var result = "";
-		var item = "";
-		var resourceURL = arguments.resource;
+	<cffunction name="makeRequest" access="public" output="false" returntype="any">
+		<cfargument name="accessConfig" type="struct" required="true" />
+		<cfargument name="resource" type="string" required="true" />
+		<cfargument name="method" type="string" required="false" default="" />
+		<cfargument name="stQuery" type="struct" required="false" default="#structnew()#" />
+		<cfargument name="stData" type="struct" required="false" default="#structnew()#" />
+		<cfargument name="format" type="string" required="false" default="json" />
 
-		for (item in listToArray(structKeyList(arguments.stQuery))){
-			if (find("?", resourceURL)){
-				resourceURL = resourceURL & "&";
-			}
-			else {
-				resourceURL = resourceURL & "?";
-			}
+		<cfset stProxy = parseProxy(arguments.accessConfig.proxy) />
+		<cfset accessToken = getAccessToken(argumentCollection=arguments.accessConfig) />
+		<cfset result = "" />
+		<cfset item = "" />
+		<cfset resourceURL = arguments.resource />
 
-			resourceURL = resourceURL & URLEncodedFormat(item) & "=" & URLEncodedFormat(arguments.stQuery[item]);
-		}
+		<cfloop list="#structKeyList(arguments.stQuery)#" index="item">
+			<cfif find("?", resourceURL)>
+				<cfset resourceURL = resourceURL & "&" />
+			<cfelse>
+				<cfset resourceURL = resourceURL & "?" />
+			</cfif>
 
-		if (arguments.method eq ""){
-			if (structisempty(arguments.stData)){
-				arguments.method = "GET";
-			}
-			else {
-				arguments.method = "POST";
-			}
-		}
+			<cfset resourceURL = resourceURL & URLEncodedFormat(item) & "=" & URLEncodedFormat(arguments.stQuery[item]) />
+		</cfloop>
 
-		http method="#arguments.method#" url="https://www.googleapis.com#resourceURL#" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#"{
-			httpparam type="header" name="Authorization" value="Bearer #accessToken#";
+		<cfif arguments.method eq "">
+			<cfif structisempty(arguments.stData)>
+				<cfset arguments.method = "GET" />
+			<cfelse>
+				<cfset arguments.method = "POST" />
+			</cfif>
+		</cfif>
 
-			if (not structisempty(arguments.stData)){
-				httpparam type="header" name="Content-Type" value="application/json";
-				httpparam type="body" value="#serializeJSON(arguments.stData)#";
-			}
-		}
+		<cfhttp method="#arguments.method#" url="https://www.googleapis.com#resourceURL#" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+			<cfhttpparam type="header" name="Authorization" value="Bearer #accessToken#" />
+
+			<cfif not structisempty(arguments.stData)>
+				<cfhttpparam type="header" name="Content-Type" value="application/json" />
+				<cfhttpparam type="body" value="#serializeJSON(arguments.stData)#" />
+			</cfif>
+		</cfhttp>
 		
-		if (not refindnocase("^20. ",cfhttp.statuscode)){
-			throw(message="Error accessing Google API: #cfhttp.statuscode#", detail=serializeJSON({ 
-				"resource" = arguments.resource,
-				"method" = arguments.method,
-				"query_string" = arguments.stQuery,
-				"body" = arguments.stData,
-				"resourceURL" = resourceURL,
-				"response" = isjson(cfhttp.filecontent.toString()) ? deserializeJSON(cfhttp.filecontent.toString()) : cfhttp.filecontent.toString()
-			}));
-		}
+		<cfif not refindnocase("^20. ",cfhttp.statuscode)>
+			<cfthrow message="Error accessing Google API: #cfhttp.statuscode#" detail="#serializeJSON({ 
+				'resource' = arguments.resource,
+				'method' = arguments.method,
+				'query_string' = arguments.stQuery,
+				'body' = arguments.stData,
+				'resourceURL' = resourceURL,
+				'response' = isjson(cfhttp.filecontent.toString()) ? deserializeJSON(cfhttp.filecontent.toString()) : cfhttp.filecontent.toString()
+			})#" />
+		</cfif>
 		
-		result = cfhttp.filecontent.toString();
+		<cfset result = cfhttp.filecontent.toString() />
 
-		if (len(result)){
-			switch (arguments.format){
-				case "json":
-					result = deserializeJSON(result);
-					break;
-			}
-		}
-		else {
-			result = {};
-		}
+		<cfif len(result)>
+			<cfswitch expression="#arguments.format#">
+				<cfcase value="json">
+					<cfset result = deserializeJSON(result) />
+				</cfcase>
+			</cfswitch>
+		<cfelse>
+			<cfset result = {} />
+		</cfif>
 
-		return result;
-	}
+		<cfreturn result />
+	</cffunction>
 
-	public query function itemsToQuery(required array items, string order){
-		var q = "";
-		var item = {};
-		var columnNames = [];
-		var columnTypes = [];
-		var col = "";
-		var queryService = "";
+	<cffunction name="itemsToQuery" access="public" output="false" returntype="query">
+		<cfargument name="items" type="array" required="true" />
+		<cfargument name="order" type="string" required="false" />
 
-		for (item in arguments.items){
-			if (not isQuery(q)){
-				for (col in listToArray(structKeyList(item))){
-					if (isSimpleValue(item[col])){
-						arrayAppend(columnNames,col);
-						switch (col){
-							case "created": case "updated":
-								arrayAppend(columnTypes,"date");
-								break;
-							default:
-								arrayAppend(columnTypes,"varchar");
-						}
-					}
-				}
-				q = querynew(columnNames, columnTypes);
-			}
+		<cfset q = "" />
+		<cfset item = {} />
+		<cfset columnNames = [] />
+		<cfset columnTypes = [] />
+		<cfset col = "" />
+		<cfset queryService = "" />
 
-			queryAddRow(q);
-			for (col in columnNames){
-				if (structKeyExists(item,col)){
-					querySetCell(q,col,item[col]);
-				}
-			}
-		}
+		<cfloop array="#arguments.items#" index="item">
+			<cfif not isQuery(q)>
+				<cfloop list="#structKeyList(item)#" index="col">
+					<cfif isSimpleValue(item[col])>
+						<cfset arrayAppend(columnNames,col) />
+						<cfswitch expression="#col#">
+							<cfcase value="created,updated" delimiters=",">
+								<cfset arrayAppend(columnTypes,"date") />
+							</cfcase>
+							<cfdefaultcase>
+								<cfset arrayAppend(columnTypes,"varchar") />
+							</cfdefaultcase>
+						</cfswitch>
+					</cfif>
+				</cfloop>
+				<cfset q = querynew(columnNames, columnTypes) />
+			</cfif>
 
-		if (structKeyExists(arguments,"order") and len(arguments.order)){
-			queryService = new query();
-			queryService.setName("myQuery");
-			queryService.setDBType("query");
-			queryService.setAttributes(sourceQuery=q);
-			objQueryResult = local.queryService.execute(sql="SELECT * FROM sourceQuery ORDER BY #arguments.order#");
-			q = objQueryResult.getResult();
-		}
+			<cfset queryAddRow(q) />
 
-		return q;
-	}
+			<cfloop array="#columnNames#" index="col">
+				<cfif structKeyExists(item,col)>
+					<cfset querySetCell(q,col,item[col]) />
+				</cfif>
+			</cfloop>
+		</cfloop>
 
-	/*
+		<cfif structKeyExists(arguments,"order") and len(arguments.order)>
+			<cfquery dbtype="query" name="q">
+				SELECT * FROM q ORDER BY #arguments.order#
+			</cfquery>
+		</cfif>
+
+		<cfreturn q />
+	</cffunction>
+
+	<!---
 	 Serialize native ColdFusion objects into a JSON formated string.
 	 
 	 @param arg 	 The data to encode. (Required)
-	 @return Returns a string. 
+	 @<cfreturn Returns a string. 
 	 @author Jehiah Czebotar (jehiah@gmail.com) 
 	 @version 2, June 27, 2008 
-	*/
-	public string function jsonencode(required any data, string queryFormat="query", string queryKeyCase="lower", boolean stringNumbers=false, boolean formatDates=false, string columnListFormat="string"){
-		// VARIABLE DECLARATION
-		var jsonString = "";
-		var tempVal = "";
-		var arKeys = "";
-		var colPos = 1;
-		var i = 1;
-		var column = "";
-		var datakey = "";
-		var recordcountkey = "";
-		var columnlist = "";
-		var columnlistkey = "";
-		var dJSONString = "";
-		var escapeToVals = "\\,\"",\/,\b,\t,\n,\f,\r";
-		var escapeVals = "\,"",/,#Chr(8)#,#Chr(9)#,#Chr(10)#,#Chr(12)#,#Chr(13)#";
-		
-		var _data = arguments.data;
+	--->
+	<cffunction name="jsonencode" access="public" output="false" returntype="string">
+		<cfargument name="data" type="any" required="true" />  
+		<cfargument name="queryFormat" type="string" required="false" default="query" />
+		<cfargument name="queryKeyCase" type="string" required="false" default="lower" />
+		<cfargument name="stringNumbers" type="boolean" required="false" default="false" />
+		<cfargument name="formatDates" type="boolean" required="false" default="false" />
+		<cfargument name="columnListFormat" type="string" required="false" default="string" />
 
-		// BOOLEAN
-		if (IsBoolean(_data) AND NOT IsNumeric(_data) AND NOT ListFindNoCase("Yes,No", _data)){
-			return LCase(ToString(_data));
-		}
+		<!--- VARIABLE DECLARATION --->
+		<cfset jsonString = "" />
+		<cfset tempVal = "" />
+		<cfset arKeys = "" />
+		<cfset colPos = 1 />
+		<cfset i = 1 />
+		<cfset column = "" />
+		<cfset datakey = "" />
+		<cfset recordcountkey = "" />
+		<cfset columnlist = "" />
+		<cfset columnlistkey = "" />
+		<cfset dJSONString = "" />
+		<cfset escapeToVals = "\\,\"",\/,\b,\t,\n,\f,\r" />
+		<cfset escapeVals = "\,"",/,#Chr(8)#,#Chr(9)#,#Chr(10)#,#Chr(12)#,#Chr(13)#" />
 		
-		// NUMBER
-		else if (NOT stringNumbers AND IsNumeric(_data) AND NOT REFind("^0+[^\.]",_data)){
-			return ToString(_data);
-		}
+		<cfset _data = arguments.data />
+
+		<!--- BOOLEAN --->
+		<cfif IsBoolean(_data) AND NOT IsNumeric(_data) AND NOT ListFindNoCase("Yes,No", _data)>
+			<cfreturn LCase(ToString(_data)) />
 		
-		// DATE
-		else if (IsDate(_data) AND arguments.formatDates){
-			return '"#DateFormat(_data, "medium")# #TimeFormat(_data, "medium")#"';
-		}
+		<!--- NUMBER --->
+		<cfelseif NOT stringNumbers AND IsNumeric(_data) AND NOT REFind("^0+[^\.]",_data)>
+			<cfreturn ToString(_data) />
 		
-		// STRING
-		else if (IsSimpleValue(_data)){
-			return '"' & ReplaceList(_data, escapeVals, escapeToVals) & '"';
-		}
+		<!--- DATE --->
+		<cfelseif IsDate(_data) AND arguments.formatDates>
+			<cfreturn '"#DateFormat(_data, "medium")# #TimeFormat(_data, "medium")#"' />
 		
-		// ARRAY
-		else if (IsArray(_data)){
-			dJSONString = createObject('java','java.lang.StringBuffer').init("");
-			for (i=1; i<=ArrayLen(_data); i++){
-				tempVal = jsonencode( _data[i], arguments.queryFormat, arguments.queryKeyCase, arguments.stringNumbers, arguments.formatDates, arguments.columnListFormat );
-				if (dJSONString.toString() EQ ""){
-					dJSONString.append(tempVal);
-				}
-				else {
-					dJSONString.append("," & tempVal);
-				}
-			}
+		<!--- STRING --->
+		<cfelseif IsSimpleValue(_data)>
+			<cfreturn '"' & ReplaceList(_data, escapeVals, escapeToVals) & '"' />
+		
+		<!--- ARRAY --->
+		<cfelseif IsArray(_data)>
+			<cfset dJSONString = createObject('java','java.lang.StringBuffer').init("") />
+			<cfloop array="#_data#" index="i">
+				<cfset tempVal = jsonencode( i, arguments.queryFormat, arguments.queryKeyCase, arguments.stringNumbers, arguments.formatDates, arguments.columnListFormat ) />
+				<cfif dJSONString.toString() EQ "">
+					<cfset dJSONString.append(tempVal) />
+				<cfelse>
+					<cfset dJSONString.append("," & tempVal) />
+				</cfif>
+			</cfloop>
 			
-			return "[" & dJSONString.toString() & "]";
-		}
+			<cfreturn "[" & dJSONString.toString() & "]" />
 		
-		// STRUCT
-		else if (IsStruct(_data)){
-			dJSONString = createObject('java','java.lang.StringBuffer').init("");
-			arKeys = StructKeyArray(_data);
-			for (i=1; i<=ArrayLen(arKeys); i++){
-				tempVal = jsonencode( _data[ arKeys[i] ], arguments.queryFormat, arguments.queryKeyCase, arguments.stringNumbers, arguments.formatDates, arguments.columnListFormat );
-				if (dJSONString.toString() EQ ""){
-					dJSONString.append('"' & arKeys[i] & '":' & tempVal);
-				}
-				else {
-					dJSONString.append("," & '"' & arKeys[i] & '":' & tempVal);
-				}
-			}
+		<!--- STRUCT --->
+		<cfelseif IsStruct(_data)>
+			<cfset dJSONString = createObject('java','java.lang.StringBuffer').init("") />
+			<cfset arKeys = StructKeyArray(_data) />
+			<cfloop array="#arKeys#" index="i">
+				<cfset tempVal = jsonencode( _data[ i ], arguments.queryFormat, arguments.queryKeyCase, arguments.stringNumbers, arguments.formatDates, arguments.columnListFormat ) />
+				<cfif dJSONString.toString() EQ "">
+					<cfset dJSONString.append('"' & i & '":' & tempVal) />
+				<cfelse>
+					<cfset dJSONString.append("," & '"' & i & '":' & tempVal) />
+				</cfif>
+			</cfloop>
 			
-			return "{" & dJSONString.toString() & "}";
-		}
+			<cfreturn "{" & dJSONString.toString() & "}" />
 		
-		// QUERY
-		else if (IsQuery(_data)){
-			dJSONString = createObject('java','java.lang.StringBuffer').init("");
+		<!--- QUERY --->
+		<cfelseif IsQuery(_data)>
+			<cfset dJSONString = createObject('java','java.lang.StringBuffer').init("") />
 			
-			// Add query meta data
-			if (arguments.queryKeyCase EQ "lower"){
-				recordcountKey = "recordcount";
-				columnlistKey = "columnlist";
-				columnlist = LCase(_data.columnlist);
-				dataKey = "data";
-			}
-			else {
-				recordcountKey = "RECORDCOUNT";
-				columnlistKey = "COLUMNLIST";
-				columnlist = _data.columnlist;
-				dataKey = "data";
-			}
+			<!--- Add query meta data --->
+			<cfif arguments.queryKeyCase EQ "lower">
+				<cfset recordcountKey = "recordcount" />
+				<cfset columnlistKey = "columnlist" />
+				<cfset columnlist = LCase(_data.columnlist) />
+				<cfset dataKey = "data" />
+			<cfelse>
+				<cfset recordcountKey = "RECORDCOUNT" />
+				<cfset columnlistKey = "COLUMNLIST" />
+				<cfset columnlist = _data.columnlist />
+				<cfset dataKey = "data" />
+			</cfif>
 			
-			dJSONString.append('"#recordcountKey#":' & _data.recordcount);
-			if (arguments.columnListFormat EQ "array"){
-				columnlist = "[" & ListQualify(columnlist, '"') & "]";
-				dJSONString.append(',"#columnlistKey#":' & columnlist);
-			}
-			else {
-				dJSONString.append(',"#columnlistKey#":"' & columnlist & '"');
-			}
-			dJSONString.append(',"#dataKey#":');
+			<cfset dJSONString.append('"#recordcountKey#":' & _data.recordcount) />
+			<cfif arguments.columnListFormat EQ "array">
+				<cfset columnlist = "[" & ListQualify(columnlist, '"') & "]" />
+				<cfset dJSONString.append(',"#columnlistKey#":' & columnlist) />
+			<cfelse>
+				<cfset dJSONString.append(',"#columnlistKey#":"' & columnlist & '"') />
+			</cfif>
+			<cfset dJSONString.append(',"#dataKey#":') />
 			
-			// Make query a structure of arrays
-			if (arguments.queryFormat EQ "query"){
-				dJSONString.append("{");
-				colPos = 1;
+			<!--- Make query a structure of arrays --->
+			<cfif arguments.queryFormat EQ "query">
+				<cfset dJSONString.append("{") />
+				<cfset colPos = 1 />
 				
-				for (column in listToArray(_data.columnlist)){
-					if (colPos GT 1){
-						dJSONString.append(",");
-					}
-					if (arguments.queryKeyCase EQ "lower"){
-						column = LCase(column);
-					}
-					dJSONString.append('"' & column & '":[');
+				<cfloop list="#_data.columnlist#" index="column">
+					<cfif colPos GT 1>
+						<cfset dJSONString.append(",") />
+					<cfelseif arguments.queryKeyCase EQ "lower">
+						<cfset column = LCase(column) />
+					</cfif>
+					<cfset dJSONString.append('"' & column & '":[') />
 					
-					for (i=1; i<=_data.recordcount; i++){
-						// Get cell value; recurse to get proper format depending on string/number/boolean data type
-						tempVal = jsonencode( _data[column][i], arguments.queryFormat, arguments.queryKeyCase, arguments.stringNumbers, arguments.formatDates, arguments.columnListFormat );
+					<cfloop query="data">
+						<!--- Get cell value; recurse to get proper format depending on string/number/boolean data type --->
+						<cfset tempVal = jsonencode( _data[column][_data.currentrow], arguments.queryFormat, arguments.queryKeyCase, arguments.stringNumbers, arguments.formatDates, arguments.columnListFormat ) />
 						
-						if (i GT 1){
-							dJSONString.append(",");
-						}
-						dJSONString.append(tempVal);
-					}
+						<cfif i GT 1>
+							<cfset dJSONString.append(",") />
+						</cfif>
+						<cfset dJSONString.append(tempVal) />
+					</cfloop>
 					
-					dJSONString.append("]");
+					<cfset dJSONString.append("]") />
 					
-					colPos = colPos + 1;
-				}
-				dJSONString.append("}");
-			// Make query an array of structures
-			}
-			else {
-				dJSONString.append("[");
-				for (i=1; i<=_data.recordcount; i++){
-					if (i GT 1){
-						dJSONString.append(",");
-					}
-					dJSONString.append("{");
-					colPos = 1;
-					for (column in listtoarray(columnlist)){
-						tempVal = jsonencode( _data[column][i], arguments.queryFormat, arguments.queryKeyCase, arguments.stringNumbers, arguments.formatDates, arguments.columnListFormat );
+					<cfset colPos = colPos + 1 />
+				</cfloop>
+				<cfset dJSONString.append("}") />
+			<!--- Make query an array of structures --->
+			<cfelse>
+				<cfset dJSONString.append("[") />
+				<cfloop query="_data">
+					<cfif i GT 1>
+						<cfset dJSONString.append(",") />
+					</cfif>
+					<cfset dJSONString.append("{") />
+					<cfset colPos = 1 />
+					<cfloop list="#columnlist#" index="column">
+						<cfset tempVal = jsonencode( _data[column][_data.currentrow], arguments.queryFormat, arguments.queryKeyCase, arguments.stringNumbers, arguments.formatDates, arguments.columnListFormat ) />
 						
-						if (colPos GT 1){
-							dJSONString.append(",");
-						}
+						<cfif colPos GT 1>
+							<cfset dJSONString.append(",") />
+						</cfif>
 						
-						if (arguments.queryKeyCase EQ "lower"){
-							column = LCase(column);
-						}
-						dJSONString.append('"' & column & '":' & tempVal);
+						<cfif arguments.queryKeyCase EQ "lower">
+							<cfset column = LCase(column) />
+						</cfif>
+						<cfset dJSONString.append('"' & column & '":' & tempVal) />
 						
-						colPos = colPos + 1;
-					}
-					dJSONString.append("}");
-				}
-				dJSONString.append("]");
-			}
+						<cfset colPos = colPos + 1 />
+					</cfloop>
+					<cfset dJSONString.append("}") />
+				</cfloop>
+				<cfset dJSONString.append("]") />
+			</cfif>
 			
-			// Wrap all query data into an object
-			return "{" & dJSONString.toString() & "}";
-		}
+			<!--- Wrap all query data into an object --->
+			<cfreturn "{" & dJSONString.toString() & "}" />
 		
-		// UNKNOWN OBJECT TYPE
-		else {
-			return '"' & "unknown-obj" & '"';
-		}
-	}
+		<!--- UNKNOWN OBJECT TYPE --->
+		<cfelse>
+			<cfreturn '"' & "unknown-obj" & '"' />
+		</cfif>
+	</cffunction>
 
-	public string function escapeFilterValue(required string val){
-		return replace(
+	<cffunction name="escapeFilterValue" access="public" output="false" returntype="string">
+		<cfargument name="val" type="string" required="true" />
+
+		<cfreturn replace(
 			replace(
 				replace(
 					arguments.val, 
@@ -442,8 +461,8 @@ component {
 				),
 				",", "\,", "ALL"
 			),
-			";", "\;", "ALL"
-		);
-	}
+			" />", "\;", "ALL"
+		) />
+	</cffunction>
 
-}
+</cfcomponent>
