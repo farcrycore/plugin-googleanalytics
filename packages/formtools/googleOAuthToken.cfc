@@ -134,8 +134,8 @@
 		<cfargument name="stMetadata" required="true" type="struct" hint="This is the metadata that is either setup as part of the type.cfc or overridden when calling ft:object by using the stMetadata argument.">
 		<cfargument name="fieldname" required="true" type="string" hint="This is the name that will be used for the form field. It includes the prefix that will be used by ft:processform.">
 
-		<cfset var protocol = application.fapi.getConfig("environment", "canonicalProtocol", "http") />
-		<cfset var domain = application.fapi.getConfig("environment", "canonicalDomain", cgi.http_host) />
+		<cfset var protocol = "http" />
+		<cfset var domain = cgi.http_host />
 		
 		<cfreturn redirectURL = protocol & "://" & domain & "/webtop/facade/ftajax.cfm?formtool=googleOAuthToken&typename=#arguments.typename#&fieldname=&property=#arguments.stMetadata.name#&googleendpoint=1" />
 	</cffunction>
