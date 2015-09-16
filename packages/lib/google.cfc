@@ -120,8 +120,8 @@
 		</cfhttp>
 		
 		<cfif not cfhttp.statuscode eq "200 OK">
-			<cfif listfindnocase("vagrant,dev,uat", application.stack)>
-				stDetail = serializeJSON({ "arguments" : duplicate(arguments) });
+			<cfif request.mode.debug>
+				<cfset stDetail = serializeJSON({ "arguments" : duplicate(arguments) }) />
 			</cfif>
 			<cfthrow message="Error retrieving refresh token: #cfhttp.statuscode# (#cfhttp.filecontent#)" detail="#stDetail#" />
 		</cfif>
