@@ -345,24 +345,43 @@
 		
 		<cfparam name="arguments.dimensions" default="" />
 		
-		<cfset stReturn.data = application.fc.lib.google.makeRequest(
-			accessConfig = arguments.accessConfig,
-			resource = "/analytics/v3/data/ga",
-			stQuery = stQuery
-		) />
-		
-		<cfset stReturn.id = stReturn.data.id />
-		<cfset stReturn.totalResults = stReturn.data.totalResults />
-		<cfset stReturn.startIndex = stReturn.data.query["start-index"] />
-		
-		<cfset stReturn.aggregates = structnew() />
-		<cfloop collection="#stReturn.data.totalsForAllResults#" item="i">
-			<cfset stReturn.aggregates[i] = stReturn.data.totalsForAllResults[i] />
-		</cfloop>
-		
-		<cfif structkeyexists(stReturn.data,"rows")>
-			<cfset stReturn.results = createResultQuery(stReturn.data.columnHeaders,stReturn.data.rows) />
-		</cfif>
+		<cftry>
+			<cfset stReturn.data = application.fc.lib.google.makeRequest(
+				accessConfig = arguments.accessConfig,
+				resource = "/analytics/v3/data/ga",
+				stQuery = stQuery,
+				timeout = arguments.timeout,
+				throwonerror = arguments.throwonerror
+			) />
+			
+			<cfset stReturn.id = stReturn.data.id />
+			<cfset stReturn.totalResults = stReturn.data.totalResults />
+			<cfset stReturn.startIndex = stReturn.data.query["start-index"] />
+			
+			<cfset stReturn.aggregates = structnew() />
+			<cfloop collection="#stReturn.data.totalsForAllResults#" item="i">
+				<cfset stReturn.aggregates[i] = stReturn.data.totalsForAllResults[i] />
+			</cfloop>
+			
+			<cfif structkeyexists(stReturn.data,"rows")>
+				<cfset stReturn.results = createResultQuery(stReturn.data.columnHeaders,stReturn.data.rows) />
+			</cfif>
+
+			<cfcatch>
+				<cfif find(" 408 ", cfcatch.message) or find("Connection Failure", cfcatch.message)>
+					<cfset application.fc.lib.error.logData(application.fc.lib.error.normalizeError(cfcatch)) />
+					<cfset stReturn = {
+						"id" = "",
+						"totalResults" = 0,
+						"startIndex" = 0,
+						"aggregates" = {},
+						"results" = querynew("empty")
+					} />
+				<cfelse>
+					<cfrethrow />
+				</cfif>
+			</cfcatch>
+		</cftry>
 		
 		<cfreturn stReturn />
 	</cffunction>

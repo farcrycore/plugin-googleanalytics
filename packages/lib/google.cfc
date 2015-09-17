@@ -174,6 +174,7 @@
 		<cfargument name="stQuery" type="struct" required="false" default="#structnew()#" />
 		<cfargument name="stData" type="struct" required="false" default="#structnew()#" />
 		<cfargument name="format" type="string" required="false" default="json" />
+		<cfargument name="timeout" type="numeric" required="false" default="30" />
 
 		<cfset stProxy = parseProxy(arguments.accessConfig.proxy) />
 		<cfset accessToken = getAccessToken(argumentCollection=arguments.accessConfig) />
@@ -199,7 +200,7 @@
 			</cfif>
 		</cfif>
 
-		<cfhttp method="#arguments.method#" url="https://www.googleapis.com#resourceURL#" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#">
+		<cfhttp method="#arguments.method#" url="https://www.googleapis.com#resourceURL#" proxyServer="#stProxy.domain#" proxyPort="#stProxy.port#" proxyUser="#stProxy.user#" proxyPassword="#stProxy.password#" timeout="#arguments.timeout#">
 			<cfhttpparam type="header" name="Authorization" value="Bearer #accessToken#" />
 
 			<cfif not structisempty(arguments.stData)>
