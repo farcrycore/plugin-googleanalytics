@@ -195,6 +195,16 @@
 		<cfreturn arguments.stProperties />
 	</cffunction>
 	
+	<cffunction name="autoSetLabel" access="public" output="false" returntype="string" hint="Automagically sets the label">
+		<cfargument name="stProperties" required="true" type="struct">
+
+		<cfif structKeyExists(arguments.stProperties, "lDomains")>
+			<cfreturn trim(listFirst(arguments.stProperties.lDomains, "#chr(10)##chr(13)# ")) />
+		<cfelse>
+			<cfreturn arguments.stProperties.label />
+		</cfif>
+	</cffunction>
+	
 	
 	<cffunction name="getSettings" access="public" output="false" returntype="struct">
 		<cfargument name="host" required="true" type="string" default="#application.fc.lib.ga.getSettingsHost()#" />
