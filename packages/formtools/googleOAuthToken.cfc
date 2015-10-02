@@ -143,7 +143,7 @@
 		<cfset var protocol = "http" />
 		<cfset var domain = cgi.http_host />
 		
-		<cfreturn redirectURL = protocol & "://" & domain & "/webtop/facade/ftajax.cfm?formtool=googleOAuthToken&typename=#arguments.typename#&fieldname=&property=#arguments.stMetadata.name#&googleendpoint=1" />
+		<cfreturn protocol & "://" & domain & "/webtop/facade/ftajax.cfm?formtool=googleOAuthToken&typename=#arguments.typename#&fieldname=&property=#arguments.stMetadata.name#&googleendpoint=1" />
 	</cffunction>
 
 	<cffunction name="getRedirectHTML" access="public" output="false" returntype="string">
