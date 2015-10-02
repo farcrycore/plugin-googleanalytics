@@ -25,7 +25,7 @@
 		<cfset querysetcell(result,"value","") />
 		<cfset querysetcell(result,"name","-- All Content Types --") />
 		
-		<cfloop collection="#application.stCOAPI#" index="typename">
+		<cfloop collection="#application.stCOAPI#" item="typename">
 			<cfif not application.fapi.getContentTypeMetadata(typename, "bSystem", false) and application.fapi.getContentTypeMetadata(typename, "displayname", "") neq "">
 				<cfset queryaddrow(result) />
 				<cfset querysetcell(result, "value", typename) />
