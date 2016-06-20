@@ -160,10 +160,10 @@
 			<cfif find("/index.cfm?",trackableURL)>
 				<cfset trackableURL = "/#application.stCOAPI[request.fc.ga.stObject.typename].fuAlias#/#rereplace(rereplace(request.fc.ga.stObject.label,'\s+','-','ALL'),'[^\w\-]','','ALL')#" />
 			</cfif>
-			<cfif len(url.view) and url.view neq "displayPageStandard" and (not structkeyexists(request.fc.ga.stObject,"displaymethod") or request.fc.ga.stObject.displaymethod neq url.view)>
+			<cfif structkeyexists(url,"view") and len(url.view) and url.view neq "displayPageStandard" and (not structkeyexists(request.fc.ga.stObject,"displaymethod") or request.fc.ga.stObject.displaymethod neq url.view) and structkeyexists(application.stCOAPI[request.fc.ga.stObject.typename].stWebskins,"#url.view#")>
 				<cfset trackableURL = "#trackableURL#/#application.stCOAPI[request.fc.ga.stObject.typename].stWebskins[url.view].fuAlias#" />
 			</cfif>
-			<cfif len(url.bodyview) and url.bodyview neq "displayBody">
+			<cfif structkeyexists(url,"bodyview") and len(url.bodyview) and url.bodyview neq "displayBody" and structkeyexists(application.stCOAPI[request.fc.ga.stObject.typename].stWebskins,"#url.bodyview#")>
 				<cfset trackableURL = "#trackableURL#/#application.stCOAPI[request.fc.ga.stObject.typename].stWebskins[url.bodyview].fuAlias#" />
 			</cfif>
 		</cfif>
