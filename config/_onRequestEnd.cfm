@@ -21,7 +21,7 @@
 		<skin:htmlHead id="ga"><cfoutput><script type="text/javascript">
 			$j.ga.setTracker('#stSetting.urchinCode#', { <cfif len(stSetting.types)>downloadClasses:['#listchangedelims(stSetting.types,"','")#']</cfif> });
 			<cfloop query="qCustomVars">$j.ga.setCustomVar(#slot#,"#name#","#value#",#scope#);
-			</cfloop>$j.ga.trackURL('#application.fc.lib.ga.getTrackableURL()#');
+			</cfloop>$j.ga.trackURL('#EncodeForJavaScript(application.fc.lib.ga.getTrackableURL())#');
 			
 			(function() {
 				var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
