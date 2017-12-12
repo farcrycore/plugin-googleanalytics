@@ -3,7 +3,7 @@
 
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 
-<cfset stSettings = application.fc.lib.ga.getSettings() />
+<cfset stSettings = application.fapi.getContentType("gaSetting").getSettings() />
 
 <cfif isdefined("url.getdata")>
 	
@@ -258,22 +258,6 @@
 	</cfoutput>
 	
 </cfif>
-
-
-<cffunction name="arraymap" access="private" output="false" returntype="array" hint="Maps values to strings in another array">
-	<cfargument name="source" type="array" required="true" />
-	<cfargument name="map" type="array" required="true" />
-	<cfargument name="indexoffset" type="numeric" required="false" default="1" />
-	
-	<cfset var a = duplicate(arguments.source) />
-	<cfset var i = 0 />
-	
-	<cfloop from="1" to="#arraylen(arguments.source)#" index="i">
-		<cfset a[i] = arguments.map[a[i]+arguments.indexoffset] />
-	</cfloop>
-	
-	<cfreturn a />
-</cffunction>
 
 <cffunction name="arrayrenumber" access="private" output="false" returntype="array" hint="Renumbers values in array so that the specified value becomes 1 and values after that are incremented by 1. Also accounts for values that wrap back around to 1.">
 	<cfargument name="source" type="array" required="true" />
