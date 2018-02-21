@@ -10,7 +10,7 @@
 <cfif isdefined("application.fc.lib.ga")>
 	<cfset stSetting = application.fapi.getContentType("gaSetting").getSettings() />
 
-	<cfif NOT structIsEmpty(stSetting) and findnocase("/webtop",cgi.SCRIPT_NAME) eq 0 and findnocase("/robots.cfm",cgi.SCRIPT_NAME) eq 0 and  (not isdefined("url.view") or not reFindNoCase("(library|webtop|edit)",url.view)) and not GetPageContext().GetResponse().IsCommitted() and not request.mode.ajax >
+	<cfif NOT structIsEmpty(stSetting) and findnocase("/webtop",cgi.SCRIPT_NAME) eq 0 and Left(cgi.SCRIPT_NAME, 10) == '/index.cfm' and  (not isdefined("url.view") or not reFindNoCase("(library|webtop|edit)",url.view)) and not GetPageContext().GetResponse().IsCommitted() and not request.mode.ajax >
 
 		<cfset qCustomVars = application.fc.lib.ga.getCustomVars() />
 		
